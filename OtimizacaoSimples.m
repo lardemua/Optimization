@@ -41,7 +41,7 @@ fc = sqrt( (Pa_A(1,1) - Pb_A(1,1))^2 + ...
 % h4 = plot(ax_pts_B(1,3:4), ax_pts_B(2,3:4), 'g-');
 % h5 = text(ax_pts_B(1,1), ax_pts_B(2,1), 'B');
 
-f = @(x) cost_function(x);
+f = @(x) costFunction(x);
 
 x0 = [a dx dy];
 

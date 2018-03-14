@@ -1,4 +1,4 @@
-function [cost] = cost_function(x)
+function [cost] = costFunction(x)
 
 
 a = x(1);
