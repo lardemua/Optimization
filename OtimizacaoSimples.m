@@ -43,7 +43,48 @@ figure;
 %
 % [x, fval, exitflag, output] = fminunc(f,x0,options);
 
-%% Otimização Simples 3D
+% %% Otimização Simples 3D
+% 
+% % Estimativa inicial da posição do ref. B em relação ao ref. A
+% ax = 0;
+% ay = 0;
+% az = 0;
+% dx = 3;
+% dy = -1;
+% dz = -8;
+% 
+% % Convert direction cosine matrix to Euler-Rodrigues vector
+% 
+% Rx = [1 0 0
+%     0 cos(ax) -sin(ax)
+%     0 sin(ax) cos(ax)];
+% 
+% Ry = [cos(ay) -sin(ay) 0
+%     sin(ay) cos(ay) 0
+%     0 0 1];
+% 
+% Rz = [cos(az) -sin(az) 0
+%     sin(az) cos(az) 0
+%     0 0 1];
+% 
+% DCM = Rz * Ry * Rx;
+% 
+% r = dcm2rod( DCM );
+% 
+% r1 = r(1); r2 = r(2); r3 = r(3);
+% 
+% % Otimização
+% 
+% f = @(x) costFunction3D(x);
+% 
+% x0 = [r1 r2 r3 dx dy dz];
+% 
+% options = optimoptions('fminunc','Algorithm','quasi-newton');
+% options.Display = 'iter';
+% 
+% [x, fval, exitflag, output] = fminunc(f,x0,options);
+
+%% Otimização 3D, N pontos
 
 % Estimativa inicial da posição do ref. B em relação ao ref. A
 ax = 0;
@@ -51,7 +92,7 @@ ay = 0;
 az = 0;
 dx = 3;
 dy = -1;
-dz = 3;
+dz = -8;
 
 % Convert direction cosine matrix to Euler-Rodrigues vector
 
@@ -75,7 +116,7 @@ r1 = r(1); r2 = r(2); r3 = r(3);
 
 % Otimização
 
-f = @(x) costFunction3D(x);
+f = @(x) costFunction3DnPoints(x);
 
 x0 = [r1 r2 r3 dx dy dz];
 
@@ -83,7 +124,5 @@ options = optimoptions('fminunc','Algorithm','quasi-newton');
 options.Display = 'iter';
 
 [x, fval, exitflag, output] = fminunc(f,x0,options);
-
-
 
 

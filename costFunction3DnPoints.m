@@ -1,4 +1,4 @@
-function [cost] = costFunction3D(x)
+function [cost] = costFunction3DnPoints(x)
 
 
 r(1) = x(1);
@@ -9,8 +9,14 @@ dy = x(5);
 dz = x(6);
 
 % Pontos conhecidos
-Pa_A = [-1 3 0 1]';
-Pb_B = [ 1 2 0 1]';
+Pa_A = [-1 3 0; 0 3 0; 1 3 0; 2 3 0
+    -1 4 0; 0 4 0; 1 4 0; 2 4 0
+    -1 5 1; 0 5 1; 1 5 1; 2 5 1]';
+Pa_A(4,1:end) = 1;
+Pb_B = [ 1 2 0; 2 2 0; 3 2 0; 4 2 0
+    1 3 0; 2 3 0; 3 3 0; 4 3 0
+    1 4 1; 2 4 1; 3 4 1; 4 4 1]';
+Pb_B(4,1:end) = 1;
 
 % Referencial A
 ax_pts = [0 1 0 0 0 0
@@ -36,21 +42,26 @@ Pb_A = BTA * Pb_B;
 % Referencial B
 ax_pts_B = BTA * ax_pts;
 
+sum_dist = 0;
+for n = 1:size(Pa_A,2)
+    sum_dist =  sum_dist + ...
+        (Pa_A(1,n) - Pb_A(1,n))^2 + ...
+        (Pa_A(2,n) - Pb_A(2,n))^2 + ...
+        (Pa_A(3,n) - Pb_A(3,n))^2;
+end
 
-fc = sqrt( (Pa_A(1,1) - Pb_A(1,1))^2 + ...
-    (Pa_A(2,1) - Pb_A(2,1))^2 + ...
-    (Pa_A(3,1) - Pb_A(3,1))^2);
+fc = sqrt(sum_dist);
 
 cost = fc;
 
 clf
 hold on; grid on; axis equal; view(130,40);
 xlabel('X'); ylabel('Y'); zlabel('Z');
-axis([-6 6 -5 5 -5 5])
+axis([-10 10 -10 10 -10 10])
 
 % Desenhar o ponto a
-plot3(Pa_A(1), Pa_A(2), Pa_A(3), 'ob')
-text(Pa_A(1)+0.2, Pa_A(2), Pa_A(3), 'Pa')
+plot3(Pa_A(1,:), Pa_A(2,:), Pa_A(3,:), 'ob')
+text(Pa_A(1,:)+0.2, Pa_A(2,:), Pa_A(3,:), 'Pa')
 
 % Desenhar referencial A
 plot3(ax_pts(1,1:2), ax_pts(2,1:2), ax_pts(3,1:2), 'r-')
