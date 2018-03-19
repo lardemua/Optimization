@@ -1,4 +1,4 @@
-function [cost] = costFunction3DnPoints(x)
+function [cost] = costFunctionCamara(x)
 
 
 r(1) = x(1);

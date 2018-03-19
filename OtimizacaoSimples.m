@@ -3,48 +3,48 @@ clc; clear; close all;
 
 %% Criar uma figura
 figure;
-
-% %% Otimização Simples 2D
+pause
+%% Otimização Simples 2D
 % % Pontos conhecidos
 % Pa_A = [-1; 3; 1];
 % Pb_B = [ 1; 2; 1];
-%
+% 
 % % Referencial A
 % ax_pts = [0 1 0 0;
 %           0 0 0 1;
 %           1 1 1 1
 %           ];
-%
+% 
 % % Estimativa inicial da posição do ref. B em relação ao ref. A
 % a = 0;
 % dx = 3;
 % dy = -1;
-%
+% 
 % BTA = [cos(a) -sin(a) dx
 %        sin(a) cos(a)  dy
 %         0     0     1];
-%
+% 
 % % Calculo do ponto b em relação ao ref. A
 % Pb_A = BTA * Pb_B;
-%
+% 
 % % Referencial B
 % ax_pts_B = BTA * ax_pts;
-%
+% 
 % % Função de custo
 % % fc = sqrt( (Pa_A(1,1) - Pb_A(1,1))^2 + ...
 % %            (Pa_A(2,1) - Pb_A(2,1))^2);
-%
+% 
 % f = @(x) costFunction(x);
-%
+% 
 % x0 = [a dx dy];
-%
+% 
 % options = optimoptions('fminunc','Algorithm','quasi-newton');
 % options.Display = 'iter';
-%
+% 
 % [x, fval, exitflag, output] = fminunc(f,x0,options);
 
-% %% Otimização Simples 3D
-% 
+%% Otimização Simples 3D
+
 % % Estimativa inicial da posição do ref. B em relação ao ref. A
 % ax = 0;
 % ay = 0;
