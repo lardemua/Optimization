@@ -21,7 +21,7 @@ s{1}.filename = 'Image13.png';
 s{2}.filename = 'Image4.png';
 K = size(s,2);
 
-% figure(2);  
+figure(1)  
 for k=1:K
 
     %load image
@@ -32,7 +32,7 @@ for k=1:K
     % Detetar xadrezes na imagem
     [s{k}.image_points, s{k}.board_size] = detectCheckerboardPoints(s{k}.undistorted );
     
-%     %Drawing stuff
+    %Drawing stuff
 %     subplot(1,K,k); imshow(s{k}.undistorted); hold on
 %     plot(s{k}.image_points(1,1),s{k}.image_points(1,2),'og')
 %     plot(s{k}.image_points(2:end,1),s{k}.image_points(2:end,2),'*r')
@@ -62,8 +62,6 @@ for ix=1:nx-1
 end
 
 %% Otimização
-
-figure(1);
 
 % Estimativa inicial da posição da camara1 em relaçao ao xadrez
 dx1 = -88.6236;
@@ -106,7 +104,7 @@ r11 = rc1(1); r12 = rc1(2); r13 = rc1(3);
 r21 = rc2(1); r22 = rc2(2); r23 = rc2(3);
 
 % Otimização
-
+i=0;
 f = @(x) costFunctionCamara(x, intrinsics, points_world, s);
 
 x0 = [r11 r12 r13 dx1 dy1 dz1 r21 r22 r23 dx2 dy2 dz2];
@@ -117,63 +115,67 @@ options.MaxFunctionEvaluations = 10000;
 
 [x, fval, exitflag, output] = fminunc(f,x0, options);
 
-%% Desenhar representações de pontos
-r1(1) = x(1);
-r1(2) = x(2);
-r1(3) = x(3);
-dx1 = x(4);
-dy1 = x(5);
-dz1 = x(6);
-r2(1) = x(7);
-r2(2) = x(8);
-r2(3) = x(9);
-dx2 = x(10);
-dy2 = x(11);
-dz2 = x(12);
-
-% Transformação geométrica 1
-DCM = zeros(4,4); DCM(4,4) = 1;
-DCM(1:3,1:3) = rod2dcm(r1);
-
-T = [1 0 0 dx1; 0 1 0 dy1; 0 0 1 dz1; 0 0 0 1];
-
-C1TW = intrinsics * T * DCM;
-
-% Calculo do ponto na imagem em relação ao ref. do xadrez
-ph{1} = C1TW * points_world';
-xpix{1} = ph{1}(1,:)./ph{1}(3,:);
-ypix{1} = ph{1}(2,:)./ph{1}(3,:);
-
-% Transformação geométrica 2
-DCM(1:3,1:3) = rod2dcm(r2);
-
-T = [1 0 0 dx2; 0 1 0 dy2; 0 0 1 dz2; 0 0 0 1];
-
-C2TW = intrinsics * T * DCM;
-
-% Calculo do ponto na imagem em relação ao ref. do xadrez
-ph{2} = C2TW * points_world';
-xpix{2} = ph{2}(1,:)./ph{2}(3,:);
-ypix{2} = ph{2}(2,:)./ph{2}(3,:);
-
-hold on; grid on; axis equal; xlabel('X'); ylabel('Y'); axis([0 800 0 800])
-
-% Desenhar o pontos xadrez Imagem 1
-ni=1;
-plot(s{ni}.image_points(:,1), s{ni}.image_points(:,2), 'ob')
-text(s{ni}.image_points(1,1)+0.2, s{ni}.image_points(1,2), 'Img1')
-
-% Desenhar o pontos xadrez Imagem 2
-ni=2;
-plot(s{ni}.image_points(:,1), s{ni}.image_points(:,2), 'ok')
-text(s{ni}.image_points(1,1)+0.2, s{ni}.image_points(1,2), 'Img2')
-
-% Desenhar o ponto camara 1
-cc=1;
-plot(xpix{cc}, ypix{cc}, '*r');
-text(xpix{cc}(1)+0.2, ypix{cc}(1), 'C1');
-
-% Desenhar o ponto camara 2
-cc=2;
-plot(xpix{cc}, ypix{cc}, '*g');
-text(xpix{cc}(1)+0.2, ypix{cc}(1), 'C2');
+% %% Desenhar representações de pontos
+% r1(1) = x(1);
+% r1(2) = x(2);
+% r1(3) = x(3);
+% dx1 = x(4);
+% dy1 = x(5);
+% dz1 = x(6);
+% r2(1) = x(7);
+% r2(2) = x(8);
+% r2(3) = x(9);
+% dx2 = x(10);
+% dy2 = x(11);
+% dz2 = x(12);
+% 
+% % Transformação geométrica 1
+% DCM = zeros(4,4); DCM(4,4) = 1;
+% DCM(1:3,1:3) = rod2dcm(r1);
+% 
+% T = [1 0 0 dx1; 0 1 0 dy1; 0 0 1 dz1; 0 0 0 1];
+% 
+% C1TW = intrinsics * T * DCM;
+% 
+% % Calculo do ponto na imagem em relação ao ref. do xadrez
+% ph{1} = C1TW * points_world';
+% xpix{1} = ph{1}(1,:)./ph{1}(3,:);
+% ypix{1} = ph{1}(2,:)./ph{1}(3,:);
+% 
+% % Transformação geométrica 2
+% DCM(1:3,1:3) = rod2dcm(r2);
+% 
+% T = [1 0 0 dx2; 0 1 0 dy2; 0 0 1 dz2; 0 0 0 1];
+% 
+% C2TW = intrinsics * T * DCM;
+% 
+% % Calculo do ponto na imagem em relação ao ref. do xadrez
+% ph{2} = C2TW * points_world';
+% xpix{2} = ph{2}(1,:)./ph{2}(3,:);
+% ypix{2} = ph{2}(2,:)./ph{2}(3,:);
+% 
+% hold on; grid on; %axis equal; xlabel('X'); ylabel('Y'); axis([0 800 0 800])
+% 
+% % Desenhar o pontos xadrez Imagem 1
+% subplot(1,2,1)
+% ni=1;
+% plot(s{ni}.image_points(:,1), s{ni}.image_points(:,2), 'ob')
+% text(s{ni}.image_points(1,1)+0.2, s{ni}.image_points(1,2), 'Img1')
+% 
+% % Desenhar o pontos xadrez Imagem 2
+% subplot(1,2,2)
+% ni=2;
+% plot(s{ni}.image_points(:,1), s{ni}.image_points(:,2), 'ok')
+% text(s{ni}.image_points(1,1)+0.2, s{ni}.image_points(1,2), 'Img2')
+% 
+% % Desenhar o ponto camara 1
+% subplot(1,2,1)
+% cc=1;
+% plot(xpix{cc}, ypix{cc}, '*r');
+% text(xpix{cc}(1)+0.2, ypix{cc}(1), 'C1');
+% 
+% % Desenhar o ponto camara 2
+% subplot(1,2,2)
+% cc=2;
+% plot(xpix{cc}, ypix{cc}, '*g');
+% text(xpix{cc}(1)+0.2, ypix{cc}(1), 'C2');
