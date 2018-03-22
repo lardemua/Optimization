@@ -3,7 +3,7 @@
 clear; clc; close all;
 
 %% Read Camera Calibration (equal for all images)
-load('intrinsic_parameters.mat')
+load('intrinsic_parameters_pg.mat')
 
 % Intrinsic matrix
 intrinsics = cameraParams.IntrinsicMatrix';
@@ -11,8 +11,9 @@ intrinsics(1:3,4) = [0; 0; 0]; %homogenize
 
 %% Image Acquisition
 
-s{1}.filename = 'Image13.png';
-s{2}.filename = 'Image4.png';
+s{1}.filename = '0001.png';
+s{2}.filename = '0002.png';
+s{3}.filename = '0004.png';
 K = size(s,2);
 
 figure('units','normalized','outerposition',[0 0 1 1]);
@@ -27,15 +28,16 @@ for k=1:K
     
     %Drawing stuff
 %     subplot(2,K,k+K);
-    subplot(K,K+1,k*(K+1)); imshow(s{k}.undistorted); hold on
-    str = ['Camara '  num2str(k)]; title(str)
-    plot(s{k}.image_points(1,1),s{k}.image_points(1,2),'og')
-    plot(s{k}.image_points(2:end,1),s{k}.image_points(2:end,2),'or')
+    subplot(K,K+1,k*(K+1));
+    imshow(s{k}.undistorted); hold on
+    str = ['Camera '  num2str(k)]; title(str)
+    plot(s{k}.image_points(1,1),s{k}.image_points(1,2),'ob')
+    plot(s{k}.image_points(2:end,1),s{k}.image_points(2:end,2),'og')
 end
 
 %% Compute Chessboard 3D worl Coordinates
 n_points = size(s{1}.image_points,1);
-square_size = 24.73;
+square_size = 105; %24.73;
 
 nx = s{1}.board_size(2); % number squares to direction x
 ny = s{1}.board_size(1); % number squares to direction y
@@ -68,26 +70,27 @@ end
 subplot(K,K+1,vplot); 
 hold on; grid on; axis square;
 xlabel('X (mm)'); ylabel('Y (mm)'); zlabel('Z (mm)');
-view(130,40); axis([-500 500 -500 500 -1500 100])
+view(130,40); axis([-1500 1500 -1500 1500 -3000 100])
 % set(gca,'CameraUpVector',[0 0 -1]);
 % camorbit(gca,-110,60,'data',[0 0 1]);
 % cameratoolbar('SetMode','orbit');
-title('Camara positions')
+title('Camera positions')
 
-plot3(worldPoints(1,:),worldPoints(2,:),worldPoints(3,:),'*');
-plot3(worldPoints(1,1),worldPoints(2,1),worldPoints(3,1),'g*');
+plot3(worldPoints(1,:),worldPoints(2,:),worldPoints(3,:),'s');
+plot3(worldPoints(1,1),worldPoints(2,1),worldPoints(3,1),'gs');
 
-% plot3([0 1], [0 0], [0 0], 'r-');
-% plot3([0 0], [0 1], [0 0], 'g-');
-% plot3([0 0], [0 0], [0 1], 'b-');
+exsize = 200;
+plot3([0 exsize], [0 0], [0 0], 'r-');
+plot3([0 0], [0 exsize], [0 0], 'g-');
+plot3([0 0], [0 0], [-exsize 0], 'b-');
 
 %% ----- Optimization -----
 
 %% Compute initial estimate
 x0 = [];
-
+camSize = 50;
 % ---- Camera 1 - Position and Rotation
-idx = 5;
+idx = 1;
 dxyz = cameraParams.TranslationVectors(idx,:,:);
 DCM = cameraParams.RotationMatrices(:,:,idx);
 T = TFromDxyzDCM(dxyz, DCM);
@@ -95,17 +98,20 @@ T = TFromDxyzDCM(dxyz, DCM);
 x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3))];
 
 %Draw Camara 1
-orientation = DCM';
-location = -dxyz * orientation;
-s{1}.cam = plotCamera('Location',location,...
+orientation = DCM;
+location = dxyz * orientation;
+ic = 1;
+s{ic}.cam = plotCamera('Location',location,...
     'Orientation',orientation,...
-    'Size',20);
-s{1}.camLine = plot3([worldPoints(1,1) s{1}.cam.Location(1)],...
-    [worldPoints(2,1) s{1}.cam.Location(2)],...
-    [worldPoints(3,1) s{1}.cam.Location(3)], '--k');
+    'Size',camSize);
+s{ic}.camLine = plot3([worldPoints(1,1) s{ic}.cam.Location(1)],...
+    [worldPoints(2,1) s{ic}.cam.Location(2)],...
+    [worldPoints(3,1) s{ic}.cam.Location(3)], '--k');
+s{ic}.cam.Label = ['C' num2str(ic)];
+s{ic}.cam.AxesVisible = 1;
 
 % ---- Camera 2 - Position and Rotation
-idx = 4;
+idx = 2;
 dxyz = cameraParams.TranslationVectors(idx,:,:);
 DCM = cameraParams.RotationMatrices(:,:,idx) ;
 T = TFromDxyzDCM(dxyz, DCM);
@@ -113,14 +119,38 @@ T = TFromDxyzDCM(dxyz, DCM);
 x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3))];
 
 %Draw Camara 2
-orientation = DCM';
-location = -dxyz * orientation;
-s{2}.cam = plotCamera('Location',location,...
+orientation = DCM;
+location = dxyz * orientation;
+ic = 2;
+s{ic}.cam = plotCamera('Location',location,...
     'Orientation',orientation,...
-    'Size',20);
-s{2}.camLine = plot3([worldPoints(1,1) s{2}.cam.Location(1)],...
-    [worldPoints(2,1) s{2}.cam.Location(2)],...
-    [worldPoints(3,1) s{2}.cam.Location(3)], '--k');
+    'Size',camSize);
+s{ic}.camLine = plot3([worldPoints(1,1) s{ic}.cam.Location(1)],...
+    [worldPoints(2,1) s{ic}.cam.Location(2)],...
+    [worldPoints(3,1) s{ic}.cam.Location(3)], '--k');
+s{ic}.cam.Label = ['C' num2str(ic)];
+s{ic}.cam.AxesVisible = 1;
+
+% ---- Camera 3 - Position and Rotation
+idx = 4;
+dxyz = cameraParams.TranslationVectors(idx,:,:);
+DCM = cameraParams.RotationMatrices(:,:,idx) ;
+T = TFromDxyzDCM(dxyz, DCM);
+
+x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3))];
+
+%Draw Camara 3
+orientation = DCM;
+location = dxyz * orientation;
+ic = 3;
+s{ic}.cam = plotCamera('Location',location,...
+    'Orientation',orientation,...
+    'Size',camSize);
+s{ic}.camLine = plot3([worldPoints(1,1) s{ic}.cam.Location(1)],...
+    [worldPoints(2,1) s{ic}.cam.Location(2)],...
+    [worldPoints(3,1) s{ic}.cam.Location(3)], '--k');
+s{ic}.cam.Label = ['C' num2str(ic)];
+s{ic}.cam.AxesVisible = 1;
 
 %% Draw initial estimate
 N = 6; %num_values_per_camera
@@ -133,7 +163,7 @@ for k=1:K
     %Draw intial projections
 %     subplot(2,K,k+K);
     subplot(K,K+1,k*(K+1))
-    s{k}.handle = plot(xpix,ypix,'+b'); hold on
+    s{k}.handle = plot(xpix,ypix,'+m'); hold on
     str = ['C'  num2str(k)];
     s{k}.texthandle = text(xpix(1)+0.2, ypix(1), str);
     
