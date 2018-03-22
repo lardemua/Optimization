@@ -73,8 +73,9 @@ idx = 1;
 dxyz = cameraParams.TranslationVectors(idx,:,:);
 DCM = cameraParams.RotationMatrices(:,:,idx);
 T = TFromDxyzDCM(dxyz, DCM);
+intrinsic_vector = interinsicToVector( intrinsics );
 
-x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3))];
+x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3)) intrinsic_vector];
 
 % Draw
 ic = 1;
@@ -85,8 +86,9 @@ idx = 2;
 dxyz = cameraParams.TranslationVectors(idx,:,:);
 DCM = cameraParams.RotationMatrices(:,:,idx) ;
 T = TFromDxyzDCM(dxyz, DCM);
+intrinsic_vector = interinsicToVector( intrinsics );
 
-x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3))];
+x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3)) intrinsic_vector];
 
 % Draw
 ic = 2;
@@ -97,19 +99,22 @@ idx = 4;
 dxyz = cameraParams.TranslationVectors(idx,:,:);
 DCM = cameraParams.RotationMatrices(:,:,idx) ;
 T = TFromDxyzDCM(dxyz, DCM);
+intrinsic_vector = interinsicToVector( intrinsics );
 
-x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3))];
+x0 = [x0 T(1:3, 4)' dcm2rod(T(1:3, 1:3)) intrinsic_vector];
 
 % Draw
 ic = 3;
 s = drawCamera( DCM, dxyz, worldPoints, s, ic, camSize );
 
 %% Draw initial estimate
-N = 6; %num_values_per_camera
+N = 10; %num_values_per_camera
 for k=1:K
     
     dxyz = x0( (k-1)*N+1 : (k-1)*N+3 );
     rod = x0( (k-1)*N+4 : (k-1)*N+6 );
+    intrinsic_vector = x0( (k-1)*N+7 : (k-1)*N+10 );
+    intrinsics = vectorToInterinsic( intrinsic_vector );
     [xpix, ypix] = points2image(dxyz, rod, intrinsics, worldPoints);
     
     %Draw intial projections
@@ -121,11 +126,36 @@ for k=1:K
 end
 
 %% Start optimization
-f = @(x) costFunctionCamara(x, intrinsics, worldPoints, s, N, K, vplot); %define function
+f = @(x) costFunctionCamaraInterinsic(x, worldPoints, s, N, K, vplot); %define function
 
 options = optimoptions('fminunc','Algorithm','quasi-newton'); %optimizer params
 options.Display = 'iter'; 
 options.MaxFunctionEvaluations = 10000;
 
 [x, fval, exitflag, output] = fminunc(f,x0, options);
+
+%% Display Results
+for k=1:K
+    
+    str = ['---> Camera '  num2str(k) ' <---'];
+    dxyz = x( (k-1)*N+1 : (k-1)*N+3 );
+    rod = x( (k-1)*N+4 : (k-1)*N+6 ); DCM = rod2dcm(rod);
+    intrinsic_vector = x( (k-1)*N+7 : (k-1)*N+10 );
+    intrinsics = vectorToInterinsic( intrinsic_vector );
+    T = TFromDxyzDCM(dxyz, DCM);
+    disp(str); disp('-- Transform Matrix --');disp(num2str(T));
+    disp('-- Intrinsic Matrix --');disp(num2str(intrinsics));
+    
+end
+
+
+
+
+
+
+
+
+
+
+
 

@@ -1,10 +1,12 @@
-function [cost] = costFunctionCamara(x, intrinsics, worldPoints, s, N, K, vplot)
+function [cost] = costFunctionCamaraInterinsic(x, worldPoints, s, N, K, vplot)
 %% Cost Function
 % Geometric transformation
 for k=1:K
     
     dxyz = x( (k-1)*N+1 : (k-1)*N+3 );
     rod = x( (k-1)*N+4 : (k-1)*N+6 );
+    intrinsic_vector = x( (k-1)*N+7 : (k-1)*N+10 );
+    intrinsics = vectorToInterinsic( intrinsic_vector );
     [s{k}.xpix, s{k}.ypix] = points2image(dxyz, rod, intrinsics, worldPoints);
     
     %Draw iterate projections
