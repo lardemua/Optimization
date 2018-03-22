@@ -135,18 +135,7 @@ options.MaxFunctionEvaluations = 10000;
 [x, fval, exitflag, output] = fminunc(f,x0, options);
 
 %% Display Results
-for k=1:K
-    
-    str = ['---> Camera '  num2str(k) ' <---'];
-    dxyz = x( (k-1)*N+1 : (k-1)*N+3 );
-    rod = x( (k-1)*N+4 : (k-1)*N+6 ); DCM = rod2dcm(rod);
-    intrinsic_vector = x( (k-1)*N+7 : (k-1)*N+10 );
-    intrinsics = vectorToInterinsic( intrinsic_vector );
-    T = TFromDxyzDCM(dxyz, DCM);
-    disp(str); disp('-- Transform Matrix --');disp(num2str(T));
-    disp('-- Intrinsic Matrix --');disp(num2str(intrinsics));
-    
-end
+dispResults( cameraParams, x, K, N );
 
 
 
