@@ -1,5 +1,13 @@
 function [cost] = costFunctionCamaraInterinsicV2(x, worldPoints, s, N, K, vplot, cameraParams)
+
+persistent num_calls;
+if isempty(num_calls)
+    num_calls = 0;
+end
+num_calls = num_calls + 1;
+
 %% Cost Function
+
 % Geometric transformation
 for k=1:K
     
@@ -35,3 +43,10 @@ end
 
 fc = sqrt(sum_dist);
 cost = fc;
+subplot(K,K+1,vplot);
+iter_str = num2str(num_calls);
+cost_str = num2str(cost);
+
+titleStr = ['Camera positions ' '|| ' 'Func-count: ' iter_str '|| ' 'Cost: ' cost_str];
+
+title(titleStr)

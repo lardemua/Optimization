@@ -5,41 +5,41 @@ function [xpix, ypix] = points2imageTeste(dxyz, rod, K, P, cameraParams)
 %% Compute T matrix from dxyz and rod
 T = zeros(4,4);
 T(4,4) = 1; %homogeneize
-% T1 = T;
-% T2 = T;
-
-
 T(1:3,1:3) = rod2dcm(rod);
 T(1:3, 4) = dxyz';
 
-
-% T1(1:3,1:3) = rod2dcm(rod)
-% 
-% 
-% T2(1:3, 1:3) = eye(3,3);
-% T2(1:3, 4) = dxyz'
-% 
-% T3 = T2 * T1
-% 
-% T3_outro = T1 * T2
-% 
-% T3_inv = inv(T3)
-
 % Calculation of the point in the image in relation to the chess reference
-% points_in_camera_coord = T * P
 
+xpix = [];
+ypix = [];
 
-ph = K * T * P;
-% ph = K  * T * [0.5 0 2 1]';
+fx = K(1,1);
+fy = K(2,2);
+cx = K(1,3);
+cy = K(2,3);
 
-xpix = ph(1,:)./ph(3,:);
-ypix = ph(2,:)./ph(3,:);
+k1 = cameraParams.RadialDistortion(1,1);
+k2 = cameraParams.RadialDistortion(1,2);
+p1 = cameraParams.TangentialDistortion(1,1);
+p2 = cameraParams.TangentialDistortion(1,2);
 
-
-% imagePoints = worldToImage(cameraParams,...
-%     rod2dcm(rod),...
-%     dxyz,...
-%     P(1:3,:)');
-% 
-% xpix = imagePoints(:,1)';
-% ypix = imagePoints(:,2)';
+for i=1:size(P,2)
+    
+    xyz = P(1:3,i)' * T(1:3,1:3) + T(1:3,4)';
+    
+    xl = xyz(1)/ xyz(3);
+    yl = xyz(2)/ xyz(3);
+    
+    r_square = xl^2 + yl^2;
+    
+    xll = xl * (1 + k1 * r_square + k2 * r_square^2) + 2 * p1 * xl * yl + p2 * (r_square + 2 * xl^2);
+    yll = yl * (1 + k1 * r_square + k2 * r_square^2) + p1 * (r_square + 2 * yl^2) + 2 * p2 * xl * yl;
+    
+    
+    u = fx * xll + cx;
+    v = fy * yll + cy;
+    
+    xpix = [xpix u];
+    ypix = [ypix v];
+    
+end
