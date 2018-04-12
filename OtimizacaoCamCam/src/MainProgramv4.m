@@ -86,6 +86,7 @@ x0 = []; camSize = 100;
 % ---- Camera 1 - Position and Rotation
 idx = 1;
 dxyz = cameraParams.TranslationVectors(idx,:,:);
+% dxyz(1,1) = dxyz(1,1)+20;
 DCM = cameraParams.RotationMatrices(:,:,idx);
 T = TFromDxyzDCM(dxyz, DCM);
 intrinsic_vector = interinsicToVector( intrinsics );
