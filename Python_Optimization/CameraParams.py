@@ -4,6 +4,17 @@ import glob
 import os
 from tqdm import tqdm
 
+
+# class stru:
+#     def stru(self):
+#         self.mtx = None
+#         self.dist = None
+#         self.rvecs = None
+#         self.tvecs = None
+
+
+# s = stru()
+
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 105, 0.001)
 
@@ -44,6 +55,7 @@ cv2.destroyAllWindows()
 
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
     objpoints, imgpoints, gray.shape[::-1], None, None)
+
 
 d = {'mtx': mtx, 'dist': dist, 'rvecs': rvecs, 'tvecs': tvecs, 'name': imagename}
 

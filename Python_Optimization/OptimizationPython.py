@@ -7,19 +7,19 @@ Program whose function is to optimize the calibration of n cameras at the same t
 #-------------------------------------------------------------------------------
 #--- IMPORT MODULES
 #-------------------------------------------------------------------------------
+import time  # Estimate time of process
 import argparse  # Read command line arguments
 import numpy as np  # Arrays and opencv images
-import cv2
-import glob
-import os
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-from mpl_toolkits.mplot3d import Axes3D
-
-from scipy.sparse import lil_matrix
-import time
-from scipy.optimize import least_squares
+import cv2  # OpenCV library
+import glob  # Finds all the pathnames
+import os  # Using operating system dependent functionality
+from tqdm import tqdm  # Show a smart progress meter
+import matplotlib.pyplot as plt  # Library to do plots 2D
+import matplotlib.animation as animation  # Animate plots
+from matplotlib import gridspec  # Make subplott
+from mpl_toolkits.mplot3d import Axes3D  # Library to do plots 3D
+from scipy.sparse import lil_matrix  # Lib Sparse bundle adjustment
+from scipy.optimize import least_squares  # Lib optimization
 
 #-------------------------------------------------------------------------------
 #--- DEFINITIONS
@@ -113,6 +113,13 @@ def vectorToIntrinsic(intrinsic_vector):
     return intrinsics
 
 
+# def points2imageOpenCV(objectPoints, rvec, tvec, cameraMatrix, distCoeffs):
+#     [imagePoints, jacobian, aspectRatio] = cv2.projectPoints(
+#         objectPoints, rvec, tvec, cameraMatrix, distCoeffs)
+
+#     return imagePoints
+
+
 def points2image(dxyz, rod, K, P, dist):
     """Converts world points into image points
 
@@ -122,9 +129,6 @@ def points2image(dxyz, rod, K, P, dist):
     T = TFromDxyzDCM(dxyz, rod)
 
     # Calculation of the point in the image in relation to the chess reference
-
-    # xpix = []
-    # ypix = []
     xypix = []
 
     fx = K[0, 0]
@@ -143,7 +147,7 @@ def points2image(dxyz, rod, K, P, dist):
     for p in P:
 
         rot = np.matrix(T[0: 3, 0: 3])
-        xyz = p * rot + T[0: 3, 3]
+        xyz = rot.dot(p) + T[0: 3, 3]
 
         xl = xyz[0, 0] / xyz[0, 2]
         yl = xyz[0, 1] / xyz[0, 2]
@@ -160,15 +164,7 @@ def points2image(dxyz, rod, K, P, dist):
 
         xypix.append([u, v])
 
-        # xpix.append(u)
-        # ypix.append(v)
-
-    # return xpix, ypix
     return np.array(xypix)
-
-    # return np.array([
-    #     [x, y]
-    #     for i in range(len(P))])
 
 
 def costFunction(x0, worldPoints, dist, s):
@@ -266,7 +262,7 @@ if __name__ == "__main__":
     fig = plt.figure()
     gs = gridspec.GridSpec(K, K+1)
 
-    for k in range(K):
+    for k in tqdm(range(K)):
 
         # load image
         s[k].raw = cv2.imread(s[k].filename)
@@ -324,8 +320,6 @@ if __name__ == "__main__":
     ax3D.set_ylabel('y axis')
     ax3D.set_zlabel('z axis')
 
-    # plt.show()
-
     #---------------------------------------
     #--- Initial guess for parameters (create x0).
     #---------------------------------------
@@ -363,7 +357,7 @@ if __name__ == "__main__":
 
     # Draw initial estimate
     N = 10  # num_values_per_camera
-    for k in range(K):
+    for k in tqdm(range(K)):
         dxyz = x0[k*N: k*N+3]
         rod = x0[k*N+3: k*N+6]
         intrinsic_vector = x0[k*N+6: k*N+10]
@@ -426,11 +420,13 @@ if __name__ == "__main__":
 
     print("Optimization took {0:.0f} seconds".format(t1 - t0))
 
-    for k in range(K):
+    for k in tqdm(range(K)):
         ax = fig.add_subplot(gs[k, K])
         plt.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'y*')
         plt.plot(s[k].xypix[0, 0], s[k].xypix[0, 1], 'g*')
+
     plt.show()
+
     #---------------------------------------
     #--- Present the results
     #---------------------------------------
