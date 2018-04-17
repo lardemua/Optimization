@@ -59,6 +59,9 @@ ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
 
 d = {'mtx': mtx, 'dist': dist, 'rvecs': rvecs, 'tvecs': tvecs, 'name': imagename}
 
-np.save("cameraParameters", d)
+d1 = {'mtx': mtx, 'dist': dist}
+
+np.save("cameraParametersChess", d)
+np.save("cameraParameters", d1)
 
 print "         [------> SAVED <------]"

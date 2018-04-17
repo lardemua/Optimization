@@ -20,7 +20,6 @@ from matplotlib import gridspec  # Make subplott
 from mpl_toolkits.mplot3d import Axes3D  # Library to do plots 3D
 from scipy.sparse import lil_matrix  # Lib Sparse bundle adjustment
 from scipy.optimize import least_squares  # Lib optimization
-import cv2.aruco as aruco  # Aruco Markers
 
 #-------------------------------------------------------------------------------
 #--- DEFINITIONS
@@ -91,6 +90,36 @@ def TFromDxyzDCM(dxyz, rod):
     return T
 
 
+def intrinsicToVector(intrinsics):
+    """Intrinsic vector
+
+        Get a vector with the values of the interinsic matrix that will be iterated
+    """
+    intrinsic_vector = [intrinsics[0, 0], intrinsics[1, 1],
+                        intrinsics[0, 2], intrinsics[1, 2]]
+
+    return intrinsic_vector
+
+
+def vectorToIntrinsic(intrinsic_vector):
+    """Intrinsic matrix
+
+        Get a interinsic matrix with the values of the vector
+    """
+    intrinsics = np.array([[intrinsic_vector[0], 0, intrinsic_vector[2], 0],
+                           [0, intrinsic_vector[1], intrinsic_vector[3], 0],
+                           [0, 0, 1, 0]])
+
+    return intrinsics
+
+
+# def points2imageOpenCV(objectPoints, rvec, tvec, cameraMatrix, distCoeffs):
+#     [imagePoints, jacobian, aspectRatio] = cv2.projectPoints(
+#         objectPoints, rvec, tvec, cameraMatrix, distCoeffs)
+
+#     return imagePoints
+
+
 def points2image(dxyz, rod, K, P, dist):
     """Converts world points into image points
 
@@ -138,7 +167,7 @@ def points2image(dxyz, rod, K, P, dist):
     return np.array(xypix)
 
 
-def costFunction(x0, worldPoints, dist, s, intrinsics):
+def costFunction(x0, worldPoints, dist, s):
     """Cost function
     """
     # Geometric transformation
@@ -146,6 +175,8 @@ def costFunction(x0, worldPoints, dist, s, intrinsics):
 
         dxyz = x0[k*N: k*N+3]
         rod = x0[k*N+3: k*N+6]
+        intrinsic_vector = x0[k*N+6: k*N+10]
+        intrinsics = vectorToIntrinsic(intrinsic_vector)
 
         s[k].xypix = points2image(
             dxyz, rod, intrinsics, worldPoints, dist)
@@ -195,29 +226,38 @@ if __name__ == "__main__":
     #--- Intitialization
     #---------------------------------------
 
-    # Read all images (each image correspond to a camera)
-    images = glob.glob((os.path.join('../CameraImages', '*.png')))
-    K = len(images)
-
-    # Read data calibration camera
-    # (Dictionary elements -> "mtx", "dist")
-    d = np.load("cameraParameters.npy")
-
-    # Define aruco
-    aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
-    parameters = aruco.DetectorParameters_create()
+    d = np.load("cameraParametersChess.npy")
+    # Dictionary elements -> "mtx", "dist", "rvecs", "tvecs"
 
     # Intrinsic matrix
-    intrinsics = np.zeros((3, 4))
-    intrinsics[:, :3] = d.item().get('mtx')
-    intrinsics[:, 3] = np.array([0, 0, 0]).transpose()  # homogenize
+    mtx = np.zeros((3, 4))
+    mtx[:, :3] = d.item().get('mtx')
+    mtx[:, 3] = np.array([0, 0, 0]).transpose()  # homogenize
 
     dist = d.item().get('dist')
+    rvecs = d.item().get('rvecs')
+    tvecs = d.item().get('tvecs')
+    # print d.item().get('name')
+    # exit()
 
-    s = [stru() for i in range(K)]
+    # termination criteria
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 105, 0.001)
 
-    for i in range(K):
-        s[i].filename = images[i]
+    # prepare object points
+    objp = np.zeros((8*6, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:8, 0:6].T.reshape(-1, 2)
+    objp = objp * 0.105
+
+    # Arrays to store object points and image points from all the images.
+    objpoints = []  # 3d point in real world space
+    imgpoints = []  # 2d points in image plane.
+
+    s = [stru() for i in range(3)]
+    s[0].filename = '../images/0001.jpg'  # 8
+    s[1].filename = '../images/0014.jpg'  # 11
+    s[2].filename = '../images/0024.jpg'  # 3
+
+    K = len(s)
 
     fig = plt.figure()
     gs = gridspec.GridSpec(K, K+1)
@@ -226,19 +266,39 @@ if __name__ == "__main__":
 
         # load image
         s[k].raw = cv2.imread(s[k].filename)
+
+        ###
+        # # undistorct image
+        # img = cv2.imread(s[k].filename)
+        # h,  w = img.shape[:2]
+        # newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
+        #     d.item().get('mtx'), d.item().get('dist'), (w, h), 1, (w, h))
+        # s[k].raw = cv2.undistort(img, d.item().get(
+        #     'mtx'), d.item().get('dist'), None, newcameramtx)
+        ###
         s[k].gray = cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2GRAY)
 
-        # lists of ids and the corners beloning to each id
-        s[k].corners, s[k].ids, rejectedImgPoints = aruco.detectMarkers(
-            s[k].gray, aruco_dict, parameters=parameters)
-
-        s[k].raw = aruco.drawDetectedMarkers(s[k].raw, s[k].corners)
+        # find the chess board corners
+        ret, s[k].corners = cv2.findChessboardCorners(s[k].gray, (8, 6), None)
 
         # drawing sttuff
         ax = fig.add_subplot(gs[k, K])
 
-        ax.imshow(cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2RGB))
-        ax.axis('off')
+        # If found, add object points, image points (after refining them)
+        if ret == True:
+            objpoints.append(objp)
+
+            cv2.cornerSubPix(s[k].gray, s[k].corners,
+                             (11, 11), (-1, -1), criteria)
+            imgpoints.append(s[k].corners)
+
+            # Draw and display the corners
+            cv2.drawChessboardCorners(s[k].raw, (8, 6), s[k].corners, ret)
+            # cv2.imshow('img', s[k].raw)
+
+            ax.imshow(cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2RGB))
+            ax.axis('off')
+            # cv2.waitKey(10)
 
     # Compute Chessboard 3D worl Coordinates
     worldPoints = getWorldPoints(s, 0.105)
@@ -266,22 +326,28 @@ if __name__ == "__main__":
     x0 = []  # the parameters(extend list x0 as needed)
 
     # ---- Camera 1 - Position and Rotation
-    dxyz = [, , ]
-    rod = [, , ]
+    idx = 7
+    dxyz = [tvecs[idx][0][0], tvecs[idx][1][0], tvecs[idx][2][0]]
+    rod = [rvecs[idx][0][0], rvecs[idx][1][0], rvecs[idx][2][0]]
+    intrinsic_vector = intrinsicToVector(mtx)
 
-    x0 = x0 + dxyz + rod
+    x0 = x0 + dxyz + rod + intrinsic_vector
 
     # ---- Camera 2 - Position and Rotation
-    dxyz = [, , ]
-    rod = [, , ]
+    idx = 10
+    dxyz = [tvecs[idx][0][0], tvecs[idx][1][0], tvecs[idx][2][0]]
+    rod = [rvecs[idx][0][0], rvecs[idx][1][0], rvecs[idx][2][0]]
+    intrinsic_vector = intrinsicToVector(mtx)
 
-    x0 = x0 + dxyz + rod
+    x0 = x0 + dxyz + rod + intrinsic_vector
 
     # ---- Camera 3 - Position and Rotation
-    dxyz = [, , ]
-    rod = [, , ]
+    idx = 2
+    dxyz = [tvecs[idx][0][0], tvecs[idx][1][0], tvecs[idx][2][0]]
+    rod = [rvecs[idx][0][0], rvecs[idx][1][0], rvecs[idx][2][0]]
+    intrinsic_vector = intrinsicToVector(mtx)
 
-    x0 = x0 + dxyz + rod
+    x0 = x0 + dxyz + rod + intrinsic_vector
 
     # convert list to array
     x0 = np.array(x0)
@@ -290,10 +356,12 @@ if __name__ == "__main__":
     print("number of parameters = " + str(len(x0)))
 
     # Draw initial estimate
-    N = 6  # num_values_per_camera
+    N = 10  # num_values_per_camera
     for k in tqdm(range(K)):
         dxyz = x0[k*N: k*N+3]
         rod = x0[k*N+3: k*N+6]
+        intrinsic_vector = x0[k*N+6: k*N+10]
+        intrinsics = vectorToIntrinsic(intrinsic_vector)
 
         s[k].xypix = points2image(
             dxyz, rod, intrinsics, worldPoints, dist)
@@ -346,7 +414,7 @@ if __name__ == "__main__":
     t0 = time.time()
 
     res = least_squares(costFunction, x0, verbose=2, x_scale='jac',
-                        ftol=1e-10, xtol=1e-10, method='trf', args=(worldPoints, dist, s, intrinsics))
+                        ftol=1e-10, xtol=1e-10, method='trf', args=(worldPoints, dist, s))
     # bounds=bounds
     t1 = time.time()
 
