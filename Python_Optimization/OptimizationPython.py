@@ -12,6 +12,7 @@ import argparse  # Read command line arguments
 import numpy as np  # Arrays and opencv images
 import cv2  # OpenCV library
 import glob  # Finds all the pathnames
+import sys
 import os  # Using operating system dependent functionality
 from tqdm import tqdm  # Show a smart progress meter
 import matplotlib.pyplot as plt  # Library to do plots 2D
@@ -21,6 +22,8 @@ from mpl_toolkits.mplot3d import Axes3D  # Library to do plots 3D
 from scipy.sparse import lil_matrix  # Lib Sparse bundle adjustment
 from scipy.optimize import least_squares  # Lib optimization
 import cv2.aruco as aruco  # Aruco Markers
+import pickle
+import networkx as nx
 
 #-------------------------------------------------------------------------------
 #--- DEFINITIONS
@@ -33,7 +36,24 @@ class stru:
         self.raw = None
         self.gray = None
         self.corners = None
+        self.rvec = None
+        self.tvec = None
         self.xypix = None
+
+
+class cam:
+    def __init__(self):
+        self.dxyz = None
+        self.rod = None
+        self.calibrated = False
+
+
+class mark:
+    def __init__(self):
+        self.id = None
+        self.xyz = None
+        self.T = None
+        self.calibrated = False
 
 
 #-------------------------------------------------------------------------------
@@ -80,7 +100,7 @@ def getWorldPoints(s, square_size):
 def TFromDxyzDCM(dxyz, rod):
     """Transformation matrix
 
-        Homogeneous transformation matrix from dxyz and DCM
+        Homogeneous transformation matrix from dxyz and rod
     """
     T = np.zeros((4, 4))
     T[3, 3] = 1
@@ -89,6 +109,18 @@ def TFromDxyzDCM(dxyz, rod):
     T[0:3, 0:3] = DCM[0]
 
     return T
+
+
+def DxyzDCMFromT(T):
+    """Transformation matrix
+
+        Homogeneous transformation matrix from DCM
+    """
+    dxyz = T[0:3, 3]
+    dxyz = dxyz.transpose()
+    rod = cv2.Rodrigues(T[0:3, 0:3])
+
+    return dxyz, rod
 
 
 def points2image(dxyz, rod, K, P, dist):
@@ -199,6 +231,15 @@ if __name__ == "__main__":
     images = glob.glob((os.path.join('../CameraImages', '*.png')))
     K = len(images)
 
+    # Start the graph and insert nodes (the images)
+    G = nx.Graph()
+    for i in range(K):
+        node_name = "camera " + str(i+1)
+        G.add_node(node_name)
+    list_nodes = list(G.node)
+    # print list_nodes[0]
+    # exit()
+
     # Read data calibration camera
     # (Dictionary elements -> "mtx", "dist")
     d = np.load("cameraParameters.npy")
@@ -206,10 +247,12 @@ if __name__ == "__main__":
     # Define aruco
     aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
     parameters = aruco.DetectorParameters_create()
+    marksize = 0.082
 
     # Intrinsic matrix
+    mtx = d.item().get('mtx')
     intrinsics = np.zeros((3, 4))
-    intrinsics[:, :3] = d.item().get('mtx')
+    intrinsics[:, :3] = mtx
     intrinsics[:, 3] = np.array([0, 0, 0]).transpose()  # homogenize
 
     dist = d.item().get('dist')
@@ -232,7 +275,20 @@ if __name__ == "__main__":
         s[k].corners, s[k].ids, rejectedImgPoints = aruco.detectMarkers(
             s[k].gray, aruco_dict, parameters=parameters)
 
-        s[k].raw = aruco.drawDetectedMarkers(s[k].raw, s[k].corners)
+        font = cv2.FONT_HERSHEY_SIMPLEX  # font for displaying text
+
+        nids = len(s[k].ids)
+        if np.all(nids != 0):
+            s[k].rvec, s[k].tvec, _ = aruco.estimatePoseSingleMarkers(
+                s[k].corners, marksize, mtx, dist)  # Estimate pose of each marker
+            for i in range(nids):
+                aruco.drawAxis(s[k].raw, mtx, dist, s[k].rvec[i],
+                               s[k].tvec[i], 0.05)  # Draw Axis
+
+                cv2.putText(s[k].raw, "Id: " + str(s[k].ids[i][0]), (s[k].corners[i][0][0][0], s[k].corners[i][0][0][1]),
+                            font, 1, (0, 255, 100), 2, cv2.LINE_AA)
+
+            s[k].raw = aruco.drawDetectedMarkers(s[k].raw, s[k].corners)
 
         # drawing sttuff
         ax = fig.add_subplot(gs[k, K])
@@ -240,6 +296,79 @@ if __name__ == "__main__":
         ax.imshow(cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2RGB))
         ax.axis('off')
 
+    #---------------------------------------
+    #--- Initial guess for parameters (create x0).
+    #---------------------------------------
+
+    # Find ids of aruco markers existents
+    list_of_ids = []
+    for i in tqdm(range(K)):
+        a = np.array(list_of_ids)
+        b = s[i].ids
+        c = [e for e in b if e not in a]
+        if len(c) > 0:
+            list_of_ids = np.append(list_of_ids, c)
+
+    cam = [cam() for i in range(K)]
+
+    marks = [mark() for i in range(len(list_of_ids))]
+    for i in tqdm(range(len(marks))):
+        marks[i].id = list_of_ids[i]
+
+    # Define global reference marker
+    marks[0].xyz = np.array([[-marksize/2, marksize/2, 0],
+                             [marksize/2, marksize/2, 0],
+                             [marksize/2, -marksize/2, 0],
+                             [-marksize/2, -marksize/2, 0]])
+
+    marks[0].T = np.eye(4)
+    marks[0].calibrated = True
+
+    loop = 0
+    while loop != K+len(marks):
+        loop = 0
+        for i in tqdm(range(K)):
+            if not cam[i].calibrated:
+                for u in range(len(s[i].ids)):
+                    for j in range(len(marks)):
+                        if s[i].ids[u] == marks[j].id:
+                            if marks[j].calibrated and not cam[i].calibrated:
+                                cam[i].dxyz = s[i].tvec[u]
+                                cam[i].rod = s[i].rvec[u]
+                                cam[i].calibrated = True
+                                for uu in range(len(s[i].ids)):
+                                    for jj in range(len(marks)):
+                                        if s[i].ids[uu] == marks[jj].id:
+                                            if not marks[jj].calibrated:
+                                                Tcam = TFromDxyzDCM(
+                                                    cam[i].dxyz[0], cam[i].rod[0])
+                                                Tmark = TFromDxyzDCM(
+                                                    s[i].tvec[uu][0], s[i].rvec[uu][0])
+                                                marks[jj].T = Tcam * Tmark
+
+                                                rot = np.matrix(
+                                                    marks[jj].T[0: 3, 0: 3])
+                                                marks[jj].xyz = np.zeros(
+                                                    (4, 3))
+                                                for x in range(4):
+                                                    p = marks[0].xyz[x]
+                                                    marks[jj].xyz[x] = rot.dot(
+                                                        p) + marks[jj].T[0: 3, 3]
+                                                    marks[jj].calibrated = True
+        for ll in range(K):
+            if cam[ll].calibrated:
+                loop = loop + 1
+        for ll in range(len(marks)):
+            if marks[ll].calibrated:
+                loop = loop + 1
+
+    for i in range(K):
+        print cam[i].dxyz
+
+    for i in range(len(marks)):
+        print marks[i].xyz
+
+    exit()
     # Compute Chessboard 3D worl Coordinates
     worldPoints = getWorldPoints(s, 0.105)
 
@@ -260,28 +389,26 @@ if __name__ == "__main__":
     ax3D.set_ylabel('y axis')
     ax3D.set_zlabel('z axis')
 
-    #---------------------------------------
-    #--- Initial guess for parameters (create x0).
-    #---------------------------------------
+    ################
     x0 = []  # the parameters(extend list x0 as needed)
 
-    # ---- Camera 1 - Position and Rotation
-    dxyz = [, , ]
-    rod = [, , ]
+    # # ---- Camera 1 - Position and Rotation
+    # dxyz = [, , ]
+    # rod = [, , ]
 
-    x0 = x0 + dxyz + rod
+    # x0 = x0 + dxyz + rod
 
-    # ---- Camera 2 - Position and Rotation
-    dxyz = [, , ]
-    rod = [, , ]
+    # # ---- Camera 2 - Position and Rotation
+    # dxyz = [, , ]
+    # rod = [, , ]
 
-    x0 = x0 + dxyz + rod
+    # x0 = x0 + dxyz + rod
 
-    # ---- Camera 3 - Position and Rotation
-    dxyz = [, , ]
-    rod = [, , ]
+    # # ---- Camera 3 - Position and Rotation
+    # dxyz = [, , ]
+    # rod = [, , ]
 
-    x0 = x0 + dxyz + rod
+    # x0 = x0 + dxyz + rod
 
     # convert list to array
     x0 = np.array(x0)

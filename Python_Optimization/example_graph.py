@@ -43,27 +43,25 @@ if __name__ == "__main__":
     ### Initialization ###
     #--------------------#
 
-    #Start the graph and insert nodes (the images)
+    # Start the graph and insert nodes (the images)
     G = nx.Graph()
     G.add_node('batata')
-    G.add_node('cenoura')    
-    G.add_node('laranja')    
-    G.add_node('tangerina')    
-    G.add_node('alface')    
+    G.add_node('cenoura')
+    G.add_node('laranja')
+    G.add_node('tangerina')
+    G.add_node('alface')
 
     G.add_edge('batata', 'cenoura', weight=1)
-    G.add_edge('batata', 'tangerina', weight=1)
-    G.add_edge('batata', 'laranja', weight=1)
-    G.add_edge('laranja', 'tangerina', weight=1)
-                
+    G.add_edge('batata', 'tangerina', weight=8)
+    G.add_edge('batata', 'laranja', weight=9)
+    G.add_edge('laranja', 'tangerina', weight=9)
 
     print('G is connected ' + str(nx.is_connected(G)))
 
-    #Draw graph
+    # Draw graph
     pos = nx.random_layout(G)
-    colors=range(4)
-    edges,weights = zip(*nx.get_edge_attributes(G,'weight').items())
-    nx.draw(G,pos,node_color='#A0CBE2',edgelist=edges, edge_color=weights, width=1, edge_cmap=plt.cm.Greys_r, with_labels=True, alpha=1, node_size=2500, font_color='k')
-    plt.show() # display
-
-
+    colors = range(4)
+    edges, weights = zip(*nx.get_edge_attributes(G, 'weight').items())
+    nx.draw(G, pos, node_color='#A0CBE2', edgelist=edges, edge_color=weights, width=6,
+            edge_cmap=plt.cm.Greys_r, with_labels=True, alpha=1, node_size=2500, font_color='k')
+    plt.show()  # display
