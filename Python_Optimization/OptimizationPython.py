@@ -24,6 +24,7 @@ from scipy.optimize import least_squares  # Lib optimization
 import cv2.aruco as aruco  # Aruco Markers
 import pickle
 import networkx as nx
+from numpy.linalg import inv
 
 #-------------------------------------------------------------------------------
 #--- DEFINITIONS
@@ -38,6 +39,8 @@ class stru:
         self.corners = None
         self.rvec = None
         self.tvec = None
+        self.pix = None
+        self.worldPoints = None
         self.xypix = None
 
 
@@ -74,29 +77,6 @@ __status__ = "Development"
 #-------------------------------------------------------------------------------
 
 
-def getWorldPoints(s, square_size):
-    """Get Global coordinates
-
-    """
-    n_points = len(s[0].corners)
-
-    nx = 8  # number squares to direction x
-    ny = 6  # number squares to direction y
-    worldPoints = np.zeros((n_points, 4))
-
-    for iy in range(ny):
-        y = iy * square_size
-        for ix in range(nx):
-            x = ix * square_size
-            worldPoints[ix+nx*iy, 0] = x
-            worldPoints[ix+nx*iy, 1] = y
-            worldPoints[ix+nx*iy, 2] = 0
-            worldPoints[ix+nx*iy, 3] = 1
-
-    worldPoints = worldPoints.transpose()
-    return worldPoints
-
-
 def TFromDxyzDCM(dxyz, rod):
     """Transformation matrix
 
@@ -118,9 +98,10 @@ def DxyzDCMFromT(T):
     """
     dxyz = T[0:3, 3]
     dxyz = dxyz.transpose()
-    rod = cv2.Rodrigues(T[0:3, 0:3])
+    rod, j = cv2.Rodrigues(T[0:3, 0:3])
+    rod = rod.transpose()
 
-    return dxyz, rod
+    return dxyz, rod[0]
 
 
 def points2image(dxyz, rod, K, P, dist):
@@ -145,7 +126,7 @@ def points2image(dxyz, rod, K, P, dist):
     p2 = dist[0, 3]
     k3 = dist[0, 4]
 
-    P = P.transpose()[:, 0:3]
+    P = P[:, 0:3]
 
     for p in P:
 
@@ -170,17 +151,28 @@ def points2image(dxyz, rod, K, P, dist):
     return np.array(xypix)
 
 
-def costFunction(x0, worldPoints, dist, s, intrinsics):
+def costFunction(x0, dist, s, intrinsics):
     """Cost function
     """
     # Geometric transformation
-    for k in range(K):
+    worldPoints = np.zeros((len(marks)*4, 4))
+    st = N*K
+    for i in range(4*len(marks)):
+        worldPoints[i, :] = x0[st+i*4: st+i*4+4]
 
+    for i in range(K):
+        s[i].worldPoints = np.zeros((len(s[i].ids)*4, 4))
+        for j in range(len(s[i].ids)):
+            n = [e for e in range(len(marks))
+                 if marks[e].id == s[i].ids[j]]
+            s[i].worldPoints[j*4:j*4+4, :] = worldPoints[n[0]*4:n[0]*4+4, :]
+
+    for k in range(K):
         dxyz = x0[k*N: k*N+3]
         rod = x0[k*N+3: k*N+6]
 
         s[k].xypix = points2image(
-            dxyz, rod, intrinsics, worldPoints, dist)
+            dxyz, rod, intrinsics, s[k].worldPoints, dist)
 
         ### Draw iterate projections ###
 
@@ -189,8 +181,8 @@ def costFunction(x0, worldPoints, dist, s, intrinsics):
 
     for ni in range(K):
 
-        sum_dist = sum_dist + sum((s[ni].corners[:, 0][..., 0] - s[ni].xypix[:, 0])
-                                  ** 2 + (s[ni].corners[:, 0][..., 1] - s[ni].xypix[:, 1])**2)
+        sum_dist = sum_dist + sum((s[ni].pix[:, 0] - s[ni].xypix[:, 0])
+                                  ** 2 + (s[ni].pix[:, 1] - s[ni].xypix[:, 1])**2)
 
     fc = sum_dist ** (1/2.0)
     cost = fc
@@ -296,6 +288,12 @@ if __name__ == "__main__":
         ax.imshow(cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2RGB))
         ax.axis('off')
 
+    for i in range(K):
+        num_marks = len(s[i].ids)
+        s[i].pix = np.zeros((4*num_marks, 2))
+        for j in range(num_marks):
+            s[i].pix[j*4: j*4+4, 0:2] = s[i].corners[j][0]
+
     #---------------------------------------
     #--- Initial guess for parameters (create x0).
     #---------------------------------------
@@ -327,24 +325,28 @@ if __name__ == "__main__":
     loop = 0
     while loop != K+len(marks):
         loop = 0
-        for i in tqdm(range(K)):
+        for i in range(K):
             if not cam[i].calibrated:
                 for u in range(len(s[i].ids)):
                     for j in range(len(marks)):
                         if s[i].ids[u] == marks[j].id:
                             if marks[j].calibrated and not cam[i].calibrated:
-                                cam[i].dxyz = s[i].tvec[u]
-                                cam[i].rod = s[i].rvec[u]
+                                dxyz = s[i].tvec[u][0]
+                                rod = s[i].rvec[u][0]
+                                Tmc = TFromDxyzDCM(dxyz, rod)
+                                T = Tmc.dot(marks[j].T)
+                                cam[i].dxyz, cam[i].rod = DxyzDCMFromT(T)
                                 cam[i].calibrated = True
                                 for uu in range(len(s[i].ids)):
                                     for jj in range(len(marks)):
                                         if s[i].ids[uu] == marks[jj].id:
                                             if not marks[jj].calibrated:
                                                 Tcam = TFromDxyzDCM(
-                                                    cam[i].dxyz[0], cam[i].rod[0])
+                                                    cam[i].dxyz, cam[i].rod)
                                                 Tmark = TFromDxyzDCM(
                                                     s[i].tvec[uu][0], s[i].rvec[uu][0])
-                                                marks[jj].T = Tcam * Tmark
+                                                marks[jj].T = inv(
+                                                    Tmark).dot(Tcam)
 
                                                 rot = np.matrix(
                                                     marks[jj].T[0: 3, 0: 3])
@@ -362,22 +364,20 @@ if __name__ == "__main__":
             if marks[ll].calibrated:
                 loop = loop + 1
 
-    for i in range(K):
-        print cam[i].dxyz
-
-    for i in range(len(marks)):
-        print marks[i].xyz
-
-    exit()
     # Compute Chessboard 3D worl Coordinates
-    worldPoints = getWorldPoints(s, 0.105)
+    worldPoints = np.zeros((len(marks)*4, 4))
+    for i in range(len(marks)):
+        worldPoints[4*i: 4*i+4, 0:3] = marks[i].xyz
+        worldPoints[4*i: 4*i+4, 3] = [1, 1, 1, 1]
+
+    worldPoints = worldPoints.transpose()
 
     # Draw 3d plot with reference systems
     ax3D = fig.add_subplot(gs[:, :K], projection='3d')
     ax3D.scatter(worldPoints[0, :], worldPoints[1, :],
                  worldPoints[2, :], c='b', marker='*')
-    ax3D.scatter(worldPoints[0, 0], worldPoints[1, 0],
-                 worldPoints[2, 0], c='g', marker='o')
+    # ax3D.scatter(worldPoints[0, 0], worldPoints[1, 0],
+    #              worldPoints[2, 0], c='g', marker='o')
 
     # Referential
     exsize = 0.150
@@ -392,23 +392,16 @@ if __name__ == "__main__":
     ################
     x0 = []  # the parameters(extend list x0 as needed)
 
-    # # ---- Camera 1 - Position and Rotation
-    # dxyz = [, , ]
-    # rod = [, , ]
+    # # ---- Camera i - Position and Rotation
+    for i in range(K):
+        dxyz = cam[i].dxyz
+        rod = cam[i].rod
 
-    # x0 = x0 + dxyz + rod
+        x0 = np.append(x0, dxyz)
+        x0 = np.append(x0, rod)
 
-    # # ---- Camera 2 - Position and Rotation
-    # dxyz = [, , ]
-    # rod = [, , ]
-
-    # x0 = x0 + dxyz + rod
-
-    # # ---- Camera 3 - Position and Rotation
-    # dxyz = [, , ]
-    # rod = [, , ]
-
-    # x0 = x0 + dxyz + rod
+    for i in range(4*len(marks)):
+        x0 = np.append(x0, worldPoints.transpose()[i])
 
     # convert list to array
     x0 = np.array(x0)
@@ -418,18 +411,33 @@ if __name__ == "__main__":
 
     # Draw initial estimate
     N = 6  # num_values_per_camera
+
+    worldPoints = np.zeros((len(marks)*4, 4))
+    st = N*K
+    for i in range(4*len(marks)):
+        worldPoints[i, :] = x0[st+i*4: st+i*4+4]
+
+    for i in range(K):
+        s[i].worldPoints = np.zeros((len(s[i].ids)*4, 4))
+        for j in range(len(s[i].ids)):
+            n = [e for e in range(len(marks))
+                 if marks[e].id == s[i].ids[j]]
+            s[i].worldPoints[j*4:j*4+4, :] = worldPoints[n[0]*4:n[0]*4+4, :]
+
     for k in tqdm(range(K)):
         dxyz = x0[k*N: k*N+3]
         rod = x0[k*N+3: k*N+6]
 
         s[k].xypix = points2image(
-            dxyz, rod, intrinsics, worldPoints, dist)
+            dxyz, rod, intrinsics, s[k].worldPoints, dist)
 
         # Draw intial projections
         ax = fig.add_subplot(gs[k, K])
         plt.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'r*')
         plt.plot(s[k].xypix[0, 0], s[k].xypix[0, 1], 'g*')
 
+    plt.show()
+    exit()
     #---------------------------------------
     #--- Test call of objective function
     #---------------------------------------
@@ -473,7 +481,7 @@ if __name__ == "__main__":
     t0 = time.time()
 
     res = least_squares(costFunction, x0, verbose=2, x_scale='jac',
-                        ftol=1e-10, xtol=1e-10, method='trf', args=(worldPoints, dist, s, intrinsics))
+                        ftol=1e-10, xtol=1e-10, method='trf', args=(dist, s, intrinsics))
     # bounds=bounds
     t1 = time.time()
 
