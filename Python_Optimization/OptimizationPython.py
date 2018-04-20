@@ -220,17 +220,8 @@ if __name__ == "__main__":
     #---------------------------------------
 
     # Read all images (each image correspond to a camera)
-    images = glob.glob((os.path.join('../CameraImages', '*.png')))
+    images = glob.glob((os.path.join('../CameraImages/new', '*.png')))
     K = len(images)
-
-    # Start the graph and insert nodes (the images)
-    G = nx.Graph()
-    for i in range(K):
-        node_name = "camera " + str(i+1)
-        G.add_node(node_name)
-    list_nodes = list(G.node)
-    # print list_nodes[0]
-    # exit()
 
     # Read data calibration camera
     # (Dictionary elements -> "mtx", "dist")
@@ -334,7 +325,7 @@ if __name__ == "__main__":
                                 dxyz = s[i].tvec[u][0]
                                 rod = s[i].rvec[u][0]
                                 Tmc = TFromDxyzDCM(dxyz, rod)
-                                T = Tmc.dot(marks[j].T)
+                                T = marks[j].T.dot(Tmc)
                                 cam[i].dxyz, cam[i].rod = DxyzDCMFromT(T)
                                 cam[i].calibrated = True
                                 for uu in range(len(s[i].ids)):
@@ -345,8 +336,8 @@ if __name__ == "__main__":
                                                     cam[i].dxyz, cam[i].rod)
                                                 Tmark = TFromDxyzDCM(
                                                     s[i].tvec[uu][0], s[i].rvec[uu][0])
-                                                marks[jj].T = inv(
-                                                    Tmark).dot(Tcam)
+                                                marks[jj].T = Tcam.dot(inv(
+                                                    Tmark))
 
                                                 rot = np.matrix(
                                                     marks[jj].T[0: 3, 0: 3])
@@ -434,7 +425,33 @@ if __name__ == "__main__":
         # Draw intial projections
         ax = fig.add_subplot(gs[k, K])
         plt.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'r*')
-        plt.plot(s[k].xypix[0, 0], s[k].xypix[0, 1], 'g*')
+
+    # Start the graph and insert nodes (the images)
+    G = nx.Graph()
+    for i in range(K):
+        node_name = "camera " + str(i+1)
+        G.add_node(node_name)
+    list_nodes = list(G.node)
+    print list_nodes
+
+    for i in range(K):
+        for u in range(len(s[i].ids)):
+            for j in range(K-(i+1)):
+                j = j + (i+1)
+                for uj in range(len(s[j].ids)):
+                    if s[i].ids[u] == s[j].ids[uj]:
+                        n1 = "camera " + str(i+1)
+                        n2 = "camera " + str(j+1)
+                        G.add_edge(n1, n2, weight=1)
+    print('G is connected ' + str(nx.is_connected(G)))
+
+    plt.figure()
+    # Draw graph
+    pos = nx.random_layout(G)
+    colors = range(4)
+    edges, weights = zip(*nx.get_edge_attributes(G, 'weight').items())
+    nx.draw(G, pos, node_color='#A0CBE2', edgelist=edges, edge_color=weights, width=6,
+            edge_cmap=plt.cm.Greys_r, with_labels=True, alpha=1, node_size=3500, font_color='k')
 
     plt.show()
     exit()

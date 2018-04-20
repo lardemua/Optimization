@@ -52,9 +52,9 @@ if __name__ == "__main__":
     G.add_node('alface')
 
     G.add_edge('batata', 'cenoura', weight=1)
-    G.add_edge('batata', 'tangerina', weight=8)
-    G.add_edge('batata', 'laranja', weight=9)
-    G.add_edge('laranja', 'tangerina', weight=9)
+    G.add_edge('batata', 'tangerina', weight=1)
+    G.add_edge('batata', 'laranja', weight=1)
+    G.add_edge('laranja', 'tangerina', weight=1)
 
     print('G is connected ' + str(nx.is_connected(G)))
 
