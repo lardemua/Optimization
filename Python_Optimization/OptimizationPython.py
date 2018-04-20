@@ -245,9 +245,7 @@ if __name__ == "__main__":
     for i in range(K):
         s[i].filename = images[i]
 
-    fig = plt.figure()
-    gs = gridspec.GridSpec(K, K+1)
-
+    fig1 = plt.figure()
     for k in tqdm(range(K)):
 
         # load image
@@ -274,8 +272,7 @@ if __name__ == "__main__":
             s[k].raw = aruco.drawDetectedMarkers(s[k].raw, s[k].corners)
 
         # drawing sttuff
-        ax = fig.add_subplot(gs[k, K])
-
+        ax = fig1.add_subplot(2, (K+1)/2, k+1)
         ax.imshow(cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2RGB))
         ax.axis('off')
 
@@ -325,7 +322,9 @@ if __name__ == "__main__":
                                 dxyz = s[i].tvec[u][0]
                                 rod = s[i].rvec[u][0]
                                 Tmc = TFromDxyzDCM(dxyz, rod)
-                                T = marks[j].T.dot(Tmc)
+                                # transformation
+                                # T = marks[j].T.dot(Tmc)
+                                T = Tmc.dot(marks[j].T)
                                 cam[i].dxyz, cam[i].rod = DxyzDCMFromT(T)
                                 cam[i].calibrated = True
                                 for uu in range(len(s[i].ids)):
@@ -336,8 +335,9 @@ if __name__ == "__main__":
                                                     cam[i].dxyz, cam[i].rod)
                                                 Tmark = TFromDxyzDCM(
                                                     s[i].tvec[uu][0], s[i].rvec[uu][0])
-                                                marks[jj].T = Tcam.dot(inv(
-                                                    Tmark))
+                                                # transformation
+                                                marks[jj].T = inv(
+                                                    Tmark).dot(Tcam)
 
                                                 rot = np.matrix(
                                                     marks[jj].T[0: 3, 0: 3])
@@ -364,7 +364,8 @@ if __name__ == "__main__":
     worldPoints = worldPoints.transpose()
 
     # Draw 3d plot with reference systems
-    ax3D = fig.add_subplot(gs[:, :K], projection='3d')
+    fig2 = plt.figure()
+    ax3D = fig2.add_subplot(111, projection='3d')
     ax3D.scatter(worldPoints[0, :], worldPoints[1, :],
                  worldPoints[2, :], c='b', marker='*')
     # ax3D.scatter(worldPoints[0, 0], worldPoints[1, 0],
@@ -415,6 +416,7 @@ if __name__ == "__main__":
                  if marks[e].id == s[i].ids[j]]
             s[i].worldPoints[j*4:j*4+4, :] = worldPoints[n[0]*4:n[0]*4+4, :]
 
+    # fig1.figure()
     for k in tqdm(range(K)):
         dxyz = x0[k*N: k*N+3]
         rod = x0[k*N+3: k*N+6]
@@ -423,8 +425,8 @@ if __name__ == "__main__":
             dxyz, rod, intrinsics, s[k].worldPoints, dist)
 
         # Draw intial projections
-        ax = fig.add_subplot(gs[k, K])
-        plt.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'r*')
+        ax = fig1.add_subplot(2, (K+1)/2, k+1)
+        ax.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'r*')
 
     # Start the graph and insert nodes (the images)
     G = nx.Graph()
@@ -445,7 +447,7 @@ if __name__ == "__main__":
                         G.add_edge(n1, n2, weight=1)
     print('G is connected ' + str(nx.is_connected(G)))
 
-    plt.figure()
+    fig3 = plt.figure()
     # Draw graph
     pos = nx.random_layout(G)
     colors = range(4)
@@ -453,8 +455,12 @@ if __name__ == "__main__":
     nx.draw(G, pos, node_color='#A0CBE2', edgelist=edges, edge_color=weights, width=6,
             edge_cmap=plt.cm.Greys_r, with_labels=True, alpha=1, node_size=3500, font_color='k')
 
-    plt.show()
-    exit()
+    # fig1.show()
+    # fig2.show()
+    # fig3.show()
+    # plt.waitforbuttonpress()
+    # exit()
+
     #---------------------------------------
     #--- Test call of objective function
     #---------------------------------------
@@ -505,11 +511,14 @@ if __name__ == "__main__":
     print("Optimization took {0:.0f} seconds".format(t1 - t0))
 
     for k in tqdm(range(K)):
-        ax = fig.add_subplot(gs[k, K])
-        plt.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'y*')
-        plt.plot(s[k].xypix[0, 0], s[k].xypix[0, 1], 'g*')
+        ax = fig1.add_subplot(2, (K+1)/2, k+1)
+        ax.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'y*')
+        ax.plot(s[k].xypix[0, 0], s[k].xypix[0, 1], 'g*')
 
-    plt.show()
+    fig1.show()
+    fig2.show()
+    fig3.show()
+    plt.waitforbuttonpress()
 
     #---------------------------------------
     #--- Present the results
