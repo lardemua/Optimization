@@ -25,39 +25,12 @@ import cv2.aruco as aruco  # Aruco Markers
 import pickle
 import networkx as nx
 from numpy.linalg import inv
+from itertools import combinations
 
 #-------------------------------------------------------------------------------
 #--- DEFINITIONS
 #-------------------------------------------------------------------------------
-
-
-class stru:
-    def __init__(self):
-        self.filename = None
-        self.raw = None
-        self.gray = None
-        self.corners = None
-        self.rvec = None
-        self.tvec = None
-        self.pix = None
-        self.worldPoints = None
-        self.xypix = None
-
-
-class cam:
-    def __init__(self):
-        self.dxyz = None
-        self.rod = None
-        self.calibrated = False
-
-
-class mark:
-    def __init__(self):
-        self.id = None
-        self.xyz = None
-        self.T = None
-        self.calibrated = False
-
+from myClasses import *
 
 #-------------------------------------------------------------------------------
 #--- HEADER
@@ -151,7 +124,7 @@ def points2image(dxyz, rod, K, P, dist):
     return np.array(xypix)
 
 
-def costFunction(x0, dist, s, intrinsics):
+def costFunction(x0, dist, intrinsics):
     """Cost function
     """
     # Geometric transformation
@@ -220,14 +193,21 @@ if __name__ == "__main__":
     #---------------------------------------
 
     # Read all images (each image correspond to a camera)
-    images = glob.glob((os.path.join('../CameraImages/new', '*.png')))
+    # images = sorted(
+        # glob.glob((os.path.join('../CameraImages/DataSet1', '*.png'))))
+
+    # images = sorted(
+    #     glob.glob((os.path.join('../CameraImages/DataSet2', '*.jpg'))))
+
+    images = sorted(
+        glob.glob((os.path.join('../CameraImages/DataSet3', '*.png'))))
+
     K = len(images)
 
-    # Read data calibration camera
-    # (Dictionary elements -> "mtx", "dist")
+    # Read data calibration camera (Dictionary elements -> "mtx", "dist")
     d = np.load("cameraParameters.npy")
 
-    # Define aruco
+    # Define aruco dictionary
     aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
     parameters = aruco.DetectorParameters_create()
     marksize = 0.082
@@ -236,17 +216,20 @@ if __name__ == "__main__":
     mtx = d.item().get('mtx')
     intrinsics = np.zeros((3, 4))
     intrinsics[:, :3] = mtx
-    intrinsics[:, 3] = np.array([0, 0, 0]).transpose()  # homogenize
 
     dist = d.item().get('dist')
 
+    # Detect Aruco Markers
     s = [stru() for i in range(K)]
 
     for i in range(K):
         s[i].filename = images[i]
 
     fig1 = plt.figure()
-    for k in tqdm(range(K)):
+
+    detections = []
+
+    for k in range(K):
 
         # load image
         s[k].raw = cv2.imread(s[k].filename)
@@ -262,12 +245,23 @@ if __name__ == "__main__":
         if np.all(nids != 0):
             s[k].rvec, s[k].tvec, _ = aruco.estimatePoseSingleMarkers(
                 s[k].corners, marksize, mtx, dist)  # Estimate pose of each marker
+
+            for i in range(len(s[k].rvec)):
+                rvec = s[k].rvec[i][0]
+                tvec = s[k].tvec[i][0]
+
+                detection = MyDetection(
+                    rvec, tvec, 'C' + str(k), 'A' + str(s[k].ids[i][0]))
+                print(detection)
+                print(detection.printValues())
+                detections.append(detection)
+
             for i in range(nids):
                 aruco.drawAxis(s[k].raw, mtx, dist, s[k].rvec[i],
                                s[k].tvec[i], 0.05)  # Draw Axis
 
                 cv2.putText(s[k].raw, "Id: " + str(s[k].ids[i][0]), (s[k].corners[i][0][0][0], s[k].corners[i][0][0][1]),
-                            font, 1, (0, 255, 100), 2, cv2.LINE_AA)
+                            font, 5, (0, 255, 100), 5, cv2.LINE_AA)
 
             s[k].raw = aruco.drawDetectedMarkers(s[k].raw, s[k].corners)
 
@@ -275,191 +269,132 @@ if __name__ == "__main__":
         ax = fig1.add_subplot(2, (K+1)/2, k+1)
         ax.imshow(cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2RGB))
         ax.axis('off')
+        plt.title("camera " + str(k))
 
+    # Get list of interest points in image
     for i in range(K):
         num_marks = len(s[i].ids)
         s[i].pix = np.zeros((4*num_marks, 2))
         for j in range(num_marks):
-            s[i].pix[j*4: j*4+4, 0:2] = s[i].corners[j][0]
+            s[i].pix[j*4: j*4+4, 0: 2] = s[i].corners[j][0]
 
     #---------------------------------------
     #--- Initial guess for parameters (create x0).
     #---------------------------------------
 
-    # Find ids of aruco markers existents
+    # Find list of markers ids existents
     list_of_ids = []
-    for i in tqdm(range(K)):
-        a = np.array(list_of_ids)
-        b = s[i].ids
+    for i in range(K):
+        a = list_of_ids
+        b = []
+        [b.append(id[0]) for id in s[i].ids]
         c = [e for e in b if e not in a]
         if len(c) > 0:
-            list_of_ids = np.append(list_of_ids, c)
+            [list_of_ids.append(ci) for ci in c]
 
-    cam = [cam() for i in range(K)]
+    # Start the Aruco nodes graph and insert nodes (the images)
 
-    marks = [mark() for i in range(len(list_of_ids))]
-    for i in tqdm(range(len(marks))):
-        marks[i].id = list_of_ids[i]
+    GA = nx.Graph()
 
-    # Define global reference marker
-    marks[0].xyz = np.array([[-marksize/2, marksize/2, 0],
-                             [marksize/2, marksize/2, 0],
-                             [marksize/2, -marksize/2, 0],
-                             [-marksize/2, -marksize/2, 0]])
+    # 2 for pairs, 3 for triplets, etc
+    # TODO >>>>>>>>>>>>>>>>> Nodes can't be defined by this way <<<<<<<<<<<<<<<<<<<<
+    for combo in combinations(list_of_ids, 2):
+        # print combo
+        a1_id = combo[0]
+        a2_id = combo[1]
 
-    marks[0].T = np.eye(4)
-    marks[0].calibrated = True
+        # Add nodes to graph
+        # for aruco_id in list_of_ids:
+        # print(aruco_id)
+        # node_name = "A" + str(aruco_id)
+        # G.add_node(node_name)
 
-    loop = 0
-    while loop != K+len(marks):
-        loop = 0
-        for i in range(K):
-            if not cam[i].calibrated:
-                for u in range(len(s[i].ids)):
-                    for j in range(len(marks)):
-                        if s[i].ids[u] == marks[j].id:
-                            if marks[j].calibrated and not cam[i].calibrated:
-                                dxyz = s[i].tvec[u][0]
-                                rod = s[i].rvec[u][0]
-                                Tmc = TFromDxyzDCM(dxyz, rod)
-                                # transformation
-                                # T = marks[j].T.dot(Tmc)
-                                T = Tmc.dot(marks[j].T)
-                                cam[i].dxyz, cam[i].rod = DxyzDCMFromT(T)
-                                cam[i].calibrated = True
-                                for uu in range(len(s[i].ids)):
-                                    for jj in range(len(marks)):
-                                        if s[i].ids[uu] == marks[jj].id:
-                                            if not marks[jj].calibrated:
-                                                Tcam = TFromDxyzDCM(
-                                                    cam[i].dxyz, cam[i].rod)
-                                                Tmark = TFromDxyzDCM(
-                                                    s[i].tvec[uu][0], s[i].rvec[uu][0])
-                                                # transformation
-                                                marks[jj].T = inv(
-                                                    Tmark).dot(Tcam)
-
-                                                rot = np.matrix(
-                                                    marks[jj].T[0: 3, 0: 3])
-                                                marks[jj].xyz = np.zeros(
-                                                    (4, 3))
-                                                for x in range(4):
-                                                    p = marks[0].xyz[x]
-                                                    marks[jj].xyz[x] = rot.dot(
-                                                        p) + marks[jj].T[0: 3, 3]
-                                                    marks[jj].calibrated = True
-        for ll in range(K):
-            if cam[ll].calibrated:
-                loop = loop + 1
-        for ll in range(len(marks)):
-            if marks[ll].calibrated:
-                loop = loop + 1
-
-    # Compute Chessboard 3D worl Coordinates
-    worldPoints = np.zeros((len(marks)*4, 4))
-    for i in range(len(marks)):
-        worldPoints[4*i: 4*i+4, 0:3] = marks[i].xyz
-        worldPoints[4*i: 4*i+4, 3] = [1, 1, 1, 1]
-
-    worldPoints = worldPoints.transpose()
-
-    # Draw 3d plot with reference systems
-    fig2 = plt.figure()
-    ax3D = fig2.add_subplot(111, projection='3d')
-    ax3D.scatter(worldPoints[0, :], worldPoints[1, :],
-                 worldPoints[2, :], c='b', marker='*')
-    # ax3D.scatter(worldPoints[0, 0], worldPoints[1, 0],
-    #              worldPoints[2, 0], c='g', marker='o')
-
-    # Referential
-    exsize = 0.150
-    ax3D.plot([0, exsize], [0, 0], [0, 0], 'r-')
-    ax3D.plot([0, 0], [0, exsize], [0, 0], 'g-')
-    ax3D.plot([0, 0], [0, 0], [0, exsize], 'b-')
-
-    ax3D.set_xlabel('x axis')
-    ax3D.set_ylabel('y axis')
-    ax3D.set_zlabel('z axis')
-
-    ################
-    x0 = []  # the parameters(extend list x0 as needed)
-
-    # # ---- Camera i - Position and Rotation
-    for i in range(K):
-        dxyz = cam[i].dxyz
-        rod = cam[i].rod
-
-        x0 = np.append(x0, dxyz)
-        x0 = np.append(x0, rod)
-
-    for i in range(4*len(marks)):
-        x0 = np.append(x0, worldPoints.transpose()[i])
-
-    # convert list to array
-    x0 = np.array(x0)
-
-    # print x0
-    print("number of parameters = " + str(len(x0)))
-
-    # Draw initial estimate
-    N = 6  # num_values_per_camera
-
-    worldPoints = np.zeros((len(marks)*4, 4))
-    st = N*K
-    for i in range(4*len(marks)):
-        worldPoints[i, :] = x0[st+i*4: st+i*4+4]
-
-    for i in range(K):
-        s[i].worldPoints = np.zeros((len(s[i].ids)*4, 4))
-        for j in range(len(s[i].ids)):
-            n = [e for e in range(len(marks))
-                 if marks[e].id == s[i].ids[j]]
-            s[i].worldPoints[j*4:j*4+4, :] = worldPoints[n[0]*4:n[0]*4+4, :]
-
-    # fig1.figure()
-    for k in tqdm(range(K)):
-        dxyz = x0[k*N: k*N+3]
-        rod = x0[k*N+3: k*N+6]
-
-        s[k].xypix = points2image(
-            dxyz, rod, intrinsics, s[k].worldPoints, dist)
-
-        # Draw intial projections
-        ax = fig1.add_subplot(2, (K+1)/2, k+1)
-        ax.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'r*')
-
-    # Start the graph and insert nodes (the images)
-    G = nx.Graph()
-    for i in range(K):
-        node_name = "camera " + str(i+1)
-        G.add_node(node_name)
-    list_nodes = list(G.node)
-    print list_nodes
-
-    for i in range(K):
-        for u in range(len(s[i].ids)):
-            for j in range(K-(i+1)):
-                j = j + (i+1)
-                for uj in range(len(s[j].ids)):
-                    if s[i].ids[u] == s[j].ids[uj]:
-                        n1 = "camera " + str(i+1)
-                        n2 = "camera " + str(j+1)
-                        G.add_edge(n1, n2, weight=1)
-    print('G is connected ' + str(nx.is_connected(G)))
+        # find all cameras that detected this aruco
+        cameras = []
+        for i in range(K):  # cycle all cameras
+            aruco_cam_ids = s[i].ids
+            if a1_id in aruco_cam_ids and a2_id in aruco_cam_ids:
+                # print("adding edge")
+                GA.add_edge("A" + str(a1_id), "C" + str(i), weight=1)
+                GA.add_edge("A" + str(a2_id), "C" + str(i), weight=1)
 
     fig3 = plt.figure()
     # Draw graph
-    pos = nx.random_layout(G)
+    pos = nx.random_layout(GA)
     colors = range(4)
-    edges, weights = zip(*nx.get_edge_attributes(G, 'weight').items())
-    nx.draw(G, pos, node_color='#A0CBE2', edgelist=edges, edge_color=weights, width=6,
-            edge_cmap=plt.cm.Greys_r, with_labels=True, alpha=1, node_size=3500, font_color='k')
+    edges, weights = zip(*nx.get_edge_attributes(GA, 'weight').items())
 
-    # fig1.show()
-    # fig2.show()
-    # fig3.show()
-    # plt.waitforbuttonpress()
-    # exit()
+    edge_labels = nx.draw_networkx_edge_labels(GA, pos)
+
+    nx.draw(GA, pos, node_color='#A0CBE2', edgelist=edges, edge_color=weights, width=6,
+            edge_cmap=plt.cm.Greys_r, with_labels=True, alpha=1, node_size=3500, font_color='k', edge_labels=edge_labels)
+
+    print GA.nodes
+    print('GA is connected ' + str(nx.is_connected(GA)))
+
+    map_node = 'A444'  # 'A595'  # to be defined by hand
+    X = MyX()
+
+    # cycle all nodes in graph
+    for node in GA.nodes:
+        print('Solving for ' + node)
+        path = nx.shortest_path(GA, map_node, node)
+        print path
+
+        lT = [np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
+                        [0, 0, 0, 1]], dtype=np.float)]
+        T = lT[0]
+
+        for i in range(1, len(path)):
+            start = path[i-1]
+            end = path[i]
+            start_end = [start, end]
+
+            if start[0] == 'C':  # start is an aruco type node
+                is_camera = True
+            else:
+                is_camera = False
+
+            # dets = [x for x in detections if x.aruco ==
+            #         start and x.camera == end]
+            # dets.extend([x for x in detections if x.aruco ==
+            #              end and x.camera == start])
+
+            det = [
+                x for x in detections if x.aruco in start_end and x.camera in start_end][0]
+
+            print(det)
+
+            Ti = det.getT()
+            if is_camera:  # start is an aruco type node
+                Ti = inv(Ti)
+
+            lT.append(Ti)
+            # TODO pre of post multiplication???
+            T = Ti.dot(T)
+
+        # print(lT)
+        print(T)
+
+        if node[0] == 'C':  # node is a camera
+            # derive rvec tvec from T
+            camera = MyCamera(T=T, id=node[1:])
+            X.cameras.append(camera)
+        else:
+            aruco = MyAruco(T=T, id=node[1:])
+            X.arucos.append(aruco)
+
+    # Draw projection 3D
+    fig2 = plt.figure()
+    ax3D = fig2.add_subplot(111, projection='3d')
+    ax3D.set_xlabel('X')
+    ax3D.set_ylabel('Y')
+    ax3D.set_zlabel('Z')
+    ax3D.set_aspect('equal')
+    X.plotArucosIn3D(ax3D)
+
+    plt.show()
+    exit()
 
     #---------------------------------------
     #--- Test call of objective function
@@ -503,8 +438,8 @@ if __name__ == "__main__":
     # --- Without sparsity matrix
     t0 = time.time()
 
-    res = least_squares(costFunction, x0, verbose=2, x_scale='jac',
-                        ftol=1e-10, xtol=1e-10, method='trf', args=(dist, s, intrinsics))
+    res = least_squares(costFunction, np.array(X.v), verbose=2, x_scale='jac',
+                        ftol=1e-10, xtol=1e-10, method='trf', args=(dist, intrinsics))
     # bounds=bounds
     t1 = time.time()
 
