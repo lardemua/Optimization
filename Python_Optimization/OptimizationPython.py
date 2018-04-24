@@ -200,7 +200,7 @@ if __name__ == "__main__":
     #     glob.glob((os.path.join('../CameraImages/DataSet2', '*.jpg'))))
 
     images = sorted(
-        glob.glob((os.path.join('../CameraImages/DataSet3', '*.png'))))
+        glob.glob((os.path.join('../CameraImages/DataSet6', '*.png'))))
 
     K = len(images)
 
@@ -242,7 +242,9 @@ if __name__ == "__main__":
         font = cv2.FONT_HERSHEY_SIMPLEX  # font for displaying text
 
         nids = len(s[k].ids)
+
         if np.all(nids != 0):
+            print("camera " + str(k))
             s[k].rvec, s[k].tvec, _ = aruco.estimatePoseSingleMarkers(
                 s[k].corners, marksize, mtx, dist)  # Estimate pose of each marker
 
@@ -252,6 +254,7 @@ if __name__ == "__main__":
 
                 detection = MyDetection(
                     rvec, tvec, 'C' + str(k), 'A' + str(s[k].ids[i][0]))
+
                 print(detection)
                 print(detection.printValues())
                 detections.append(detection)
@@ -261,7 +264,7 @@ if __name__ == "__main__":
                                s[k].tvec[i], 0.05)  # Draw Axis
 
                 cv2.putText(s[k].raw, "Id: " + str(s[k].ids[i][0]), (s[k].corners[i][0][0][0], s[k].corners[i][0][0][1]),
-                            font, 5, (0, 255, 100), 5, cv2.LINE_AA)
+                            font, 5, (76, 0, 153), 5, cv2.LINE_AA)
 
             s[k].raw = aruco.drawDetectedMarkers(s[k].raw, s[k].corners)
 
@@ -293,30 +296,15 @@ if __name__ == "__main__":
             [list_of_ids.append(ci) for ci in c]
 
     # Start the Aruco nodes graph and insert nodes (the images)
-
     GA = nx.Graph()
 
-    # 2 for pairs, 3 for triplets, etc
-    # TODO >>>>>>>>>>>>>>>>> Nodes can't be defined by this way <<<<<<<<<<<<<<<<<<<<
-    for combo in combinations(list_of_ids, 2):
-        # print combo
-        a1_id = combo[0]
-        a2_id = combo[1]
-
-        # Add nodes to graph
-        # for aruco_id in list_of_ids:
-        # print(aruco_id)
-        # node_name = "A" + str(aruco_id)
-        # G.add_node(node_name)
-
+    for a_id in list_of_ids:
         # find all cameras that detected this aruco
         cameras = []
         for i in range(K):  # cycle all cameras
             aruco_cam_ids = s[i].ids
-            if a1_id in aruco_cam_ids and a2_id in aruco_cam_ids:
-                # print("adding edge")
-                GA.add_edge("A" + str(a1_id), "C" + str(i), weight=1)
-                GA.add_edge("A" + str(a2_id), "C" + str(i), weight=1)
+            if a_id in aruco_cam_ids:
+                GA.add_edge("A" + str(a_id), "C" + str(i), weight=1)
 
     fig3 = plt.figure()
     # Draw graph
@@ -337,6 +325,7 @@ if __name__ == "__main__":
 
     # cycle all nodes in graph
     for node in GA.nodes:
+
         print('Solving for ' + node)
         path = nx.shortest_path(GA, map_node, node)
         print path
@@ -355,26 +344,31 @@ if __name__ == "__main__":
             else:
                 is_camera = False
 
-            # dets = [x for x in detections if x.aruco ==
-            #         start and x.camera == end]
-            # dets.extend([x for x in detections if x.aruco ==
-            #              end and x.camera == start])
-
             det = [
                 x for x in detections if x.aruco in start_end and x.camera in start_end][0]
 
             print(det)
 
             Ti = det.getT()
-            if is_camera:  # start is an aruco type node
+
+            if is_camera:  # start is an aruco type node #seems to be validated!
+                print('Will invert')
                 Ti = inv(Ti)
+                # orientation = Ti[0:3, 0:3].transpose()
+                # location = -Ti[0:3, 3].dot(orientation)
+                # Ti[0:3, 0:3] = orientation
+                # Ti[0:3, 3] = location
 
             lT.append(Ti)
             # TODO pre of post multiplication???
+
             T = Ti.dot(T)
 
+            print("Ti = \n" + str(Ti))
+            print("T = \n" + str(T))
+
         # print(lT)
-        print(T)
+        # print(T)
 
         if node[0] == 'C':  # node is a camera
             # derive rvec tvec from T
@@ -387,6 +381,7 @@ if __name__ == "__main__":
     # Draw projection 3D
     fig2 = plt.figure()
     ax3D = fig2.add_subplot(111, projection='3d')
+    plt.title("3D projection of aruco markers")
     ax3D.set_xlabel('X')
     ax3D.set_ylabel('Y')
     ax3D.set_zlabel('Z')

@@ -137,9 +137,53 @@ class MyX:
             ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [Ptransf[0][1], Ptransf[3][1]], [
                       Ptransf[0][2], Ptransf[3][2]], 'b-')
 
+            # Draw text
+            ax3D.text(Ptransf[0][0], Ptransf[0][1],
+                      Ptransf[0][2], "A" + aruco.id, color='darkorchid')
+            ax3D.text(Ptransf[1][0], Ptransf[1][1],
+                      Ptransf[1][2], "x", color='red')
+            ax3D.text(Ptransf[2][0], Ptransf[2][1],
+                      Ptransf[2][2], "y", color='green')
+            ax3D.text(Ptransf[3][0], Ptransf[3][1],
+                      Ptransf[3][2], "z", color='blue')
+
             # Draw aruco point 3D
             wp = wp.transpose()
             ax3D.plot(wp[0, :], wp[1, :], wp[2, :], 'k.')
+
+        for camera in self.cameras:
+            T = camera.getT()
+            rot = T[0:3, 0:3]
+            trans = T[0: 3, 3]
+
+            Ptransf = []
+            wp = np.zeros((4, 3))
+
+            for p in P:
+                Ptransf.append(rot.dot(p) + trans)
+
+            i = 0
+            for p in Pc:
+                wp[i, :] = rot.dot(p) + trans
+                i = i + 1
+
+            # Draw camera axis
+            ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [Ptransf[0][1], Ptransf[1][1]], [
+                      Ptransf[0][2], Ptransf[1][2]], 'r-')
+            ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [Ptransf[0][1], Ptransf[2][1]], [
+                      Ptransf[0][2], Ptransf[2][2]], 'g-')
+            ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [Ptransf[0][1], Ptransf[3][1]], [
+                      Ptransf[0][2], Ptransf[3][2]], 'b-')
+
+            # Draw text
+            ax3D.text(Ptransf[0][0], Ptransf[0][1],
+                      Ptransf[0][2], "C" + camera.id, color='darkorchid')
+            ax3D.text(Ptransf[1][0], Ptransf[1][1],
+                      Ptransf[1][2], "x", color='red')
+            ax3D.text(Ptransf[2][0], Ptransf[2][1],
+                      Ptransf[2][2], "y", color='green')
+            ax3D.text(Ptransf[3][0], Ptransf[3][1],
+                      Ptransf[3][2], "z", color='blue')
 
     def toVector(self):
         for i in range(len(self.cameras)):
