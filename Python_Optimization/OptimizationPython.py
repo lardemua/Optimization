@@ -82,8 +82,14 @@ def points2image(dxyz, rod, K, P, dist):
 
         Computes the list of pixels given by the projection of P 3D points onto the image given the postion and intrinsics of the camera
     """
+
     # Compute T matrix from dxyz and rod
     T = TFromDxyzDCM(dxyz, rod)
+
+    points2imageFromT(T, K, P, dist)
+
+
+def points2imageFromT(T, K, P, dist):
 
     # Calculation of the point in the image in relation to the chess reference
     xypix = []
@@ -193,14 +199,8 @@ if __name__ == "__main__":
     #---------------------------------------
 
     # Read all images (each image correspond to a camera)
-    # images = sorted(
-        # glob.glob((os.path.join('../CameraImages/DataSet1', '*.png'))))
-
-    # images = sorted(
-    #     glob.glob((os.path.join('../CameraImages/DataSet2', '*.jpg'))))
-
     images = sorted(
-        glob.glob((os.path.join('../CameraImages/DataSet6', '*.png'))))
+        glob.glob((os.path.join('../CameraImages/DataSet8', '*.png'))))
 
     K = len(images)
 
@@ -320,7 +320,7 @@ if __name__ == "__main__":
     print GA.nodes
     print('GA is connected ' + str(nx.is_connected(GA)))
 
-    map_node = 'A444'  # 'A595'  # to be defined by hand
+    map_node = 'A446'  # 'A595'  # to be defined by hand
     X = MyX()
 
     # cycle all nodes in graph
@@ -328,11 +328,9 @@ if __name__ == "__main__":
 
         print('Solving for ' + node)
         path = nx.shortest_path(GA, map_node, node)
-        print path
 
-        lT = [np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
-                        [0, 0, 0, 1]], dtype=np.float)]
-        T = lT[0]
+        T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
+                      [0, 0, 0, 1]], dtype=np.float)
 
         for i in range(1, len(path)):
             start = path[i-1]
@@ -355,20 +353,14 @@ if __name__ == "__main__":
                 print('Will invert')
                 Ti = inv(Ti)
                 # orientation = Ti[0:3, 0:3].transpose()
-                # location = -Ti[0:3, 3].dot(orientation)
+                # location = -orientation.dot(Ti[0:3, 3])
                 # Ti[0:3, 0:3] = orientation
                 # Ti[0:3, 3] = location
-
-            lT.append(Ti)
-            # TODO pre of post multiplication???
 
             T = Ti.dot(T)
 
             print("Ti = \n" + str(Ti))
             print("T = \n" + str(T))
-
-        # print(lT)
-        # print(T)
 
         if node[0] == 'C':  # node is a camera
             # derive rvec tvec from T
@@ -377,6 +369,23 @@ if __name__ == "__main__":
         else:
             aruco = MyAruco(T=T, id=node[1:])
             X.arucos.append(aruco)
+
+    l = 0.082
+    Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
+                   [l/2, -l/2, 0], [-l/2, -l/2, 0]])
+
+    for detection in detections:
+
+        # print(detection)
+        T = detection.getT()
+        # print T
+
+        xypix = points2imageFromT(T, intrinsics, Pc, dist)
+
+        # Draw intial projections
+        ax = fig1.add_subplot(2, (K+1)/2, k+1)
+        ax.plot(xypix[:, 0], xypix[:, 1], 'gd')
+        ax.text(xypix[0, 0], xypix[0, 1], detection.aruco, color='yellow')
 
     # Draw projection 3D
     fig2 = plt.figure()

@@ -211,13 +211,3 @@ class MyX:
             self.arucos[i].x = v[i*6+3+n_cameras*6]
             self.arucos[i].y = v[i*6+4+n_cameras*6]
             self.arucos[i].z = v[i*6+5+n_cameras*6]
-
-# myt = MyTransform()
-# T = np.array([[0, 1, 0, 2], [-1, 0, 0, 0], [0, 0, 1, 0],
-#               [0, 0, 0, 1]], dtype=np.float)
-# print(T)
-# myt.setPointRod(T)
-# myt.printValues()
-# print(myt.getT())
-
-# exit(0)
