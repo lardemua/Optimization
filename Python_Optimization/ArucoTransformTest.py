@@ -398,41 +398,75 @@ if __name__ == "__main__":
     #--- Test Miguel
     #---------------------------------------
 
+    fig3 = plt.figure()
+    ax3D = fig3.add_subplot(111, projection='3d')
+    plt.title("3D projection of aruco markers")
+    ax3D.set_xlabel('X')
+    ax3D.set_ylabel('Y')
+    ax3D.set_zlabel('Z')
+    ax3D.set_aspect('equal')
+
     # Get the transforms
     A444_T_C0 = detections[0].getT()
     A595_T_C0 = detections[1].getT()
 
+    s = 0.1
     # Define in the Origin of the A595 reference system
-    P_A595 = np.array([0, 0, 0, 1], dtype=np.float)
+    P_A444 = np.array([[0, 0, 0, 1], [s, 0, 0, 1], [0, s, 0, 1], [0, 0, s, 1]], dtype=np.float).transpose()
+    P_O = np.array([[0, 0, 0, 1], [s, 0, 0, 1], [0, s, 0, 1], [0, 0, s, 1]], dtype=np.float).transpose()
+
+
+    print(A444_T_C0)
+    print(inv(A444_T_C0))
 
     # Compute the P_A595 transformed to the C0 reference system
-    P_C0 = np.matmul(A595_T_C0, P_A595)
+    P_C0 = np.matmul(A444_T_C0, P_A444)
 
     # Compute the P_A595 transformed to the A444 reference system in two ways (should give the same result)
 
     # By using the previously obtained P_C0
-    P_A444 = np.matmul(inv(A444_T_C0), P_C0)
+    P_A595 = np.matmul(np.matmul(inv(A444_T_C0), A595_T_C0), P_O)
 
     # By first combining all transformations from A595 to A444 and them multiplying the A595 point
-    P_A444_2 = np.matmul(np.matmul(inv(A444_T_C0), A595_T_C0), P_A595)
+    #P_A444_2 = np.matmul(np.matmul(inv(A444_T_C0), A595_T_C0), P_A595)
 
     # Plot all the points. The test consists in seeing of P_A444 and P_A444_2 are coincident
-    P = P_A595
-    ax3D.plot([P[0]], [P[1]], [P[2]], 'cs')
-    ax3D.text(P[0], P[1], P[2], 'P_A595', color='darkorchid')
 
-    P = P_C0
-    ax3D.plot([P[0]], [P[1]], [P[2]], 'cs')
-    ax3D.text(P[0], P[1], P[2], 'P_C0', color='darkorchid')
+    def myPlot(P, label):
+        #Function to plot origin and reference system
+        o = P[0:3,0] 
+        x = P[0:3,1] 
+        y = P[0:3,2] 
+        z = P[0:3,3] 
+        #print(o)
+        #print(x)
+        #print(y)
+        #print(z)
+        ax3D.plot([o[0]], [o[1]], [o[2]], 'cs')
+        ax3D.text(o[0], o[1], o[2], label, color='darkorchid')
+        ax3D.plot([o[0], x[0]], [o[1], x[1]], [o[2], x[2]], 'r-') #x axis
+        ax3D.plot([o[0], y[0]], [o[1], y[1]], [o[2], y[2]], 'g-') #y axis
+        ax3D.plot([o[0], z[0]], [o[1], z[1]], [o[2], z[2]], 'b-') #z axis
 
-    P = P_A444
-    ax3D.plot([P[0]], [P[1]], [P[2]], 'ms')
-    ax3D.text(P[0], P[1], P[2], 'P_A444', color='darkorchid')
+        ax3D.text(x[0], x[1], x[2], 'x', color='red')
+        ax3D.text(y[0], y[1], y[2], 'y', color='green')
+        ax3D.text(z[0], z[1], z[2], 'z', color='blue')
 
-    P = P_A444_2
-    ax3D.plot([P[0]], [P[1]], [P[2]], marker='x',
-              color='blue', markersize=16, linewidth=14)
-    ax3D.text(P[0], P[1], P[2], 'P_A444_2', color='darkorchid')
+    myPlot(P_A444, 'P_A444')
+    myPlot(P_C0, 'P_C0')
+    myPlot(P_A595, 'P_A595')
+
+
+
+    #P = P_A444_2
+    #ax3D.plot([P[0]], [P[1]], [P[2]], marker='x',color='blue', markersize=16, linewidth=14)
+    #ax3D.text(P[0], P[1], P[2], 'P_A444_2', color='darkorchid')
+
+    ax3D.set_xlabel('X')
+    ax3D.set_ylabel('Y')
+    ax3D.set_zlabel('Z')
+    ax3D.set_aspect('equal')
+
 
     #---------------------------------------
     #--- End of test Miguel
