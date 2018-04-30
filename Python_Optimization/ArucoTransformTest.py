@@ -321,7 +321,7 @@ if __name__ == "__main__":
     print('GA is connected ' + str(nx.is_connected(GA)))
 
     # map_node = 'A446'  # to be defined by hand
-    map_node = 'A595'  # to be defined by hand
+    map_node = 'C0'  # to be defined by hand
     X = MyX()
 
     # cycle all nodes in graph
@@ -350,11 +350,11 @@ if __name__ == "__main__":
 
             Ti = det.getT()
 
-            if is_camera:  # start is an aruco type node #seems to be validated!
+            if not is_camera:  # start is an aruco type node #seems to be validated!
                 print('Will invert')
                 Ti = inv(Ti)
 
-            T = np.matmul(Ti, T)
+            T = np.matmul(T, Ti)
 
             print("Ti = \n" + str(Ti))
             print("T = \n" + str(T))

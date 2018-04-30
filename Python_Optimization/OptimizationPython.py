@@ -50,43 +50,43 @@ __status__ = "Development"
 #-------------------------------------------------------------------------------
 
 
-def TFromDxyzDCM(dxyz, rod):
-    """Transformation matrix
+# def TFromDxyzDCM(dxyz, rod):
+#     """Transformation matrix
 
-        Homogeneous transformation matrix from dxyz and rod
-    """
-    T = np.zeros((4, 4))
-    T[3, 3] = 1
-    T[0:3, 3] = dxyz.transpose()
-    DCM = cv2.Rodrigues(rod)
-    T[0:3, 0:3] = DCM[0]
+#         Homogeneous transformation matrix from dxyz and rod
+#     """
+#     T = np.zeros((4, 4))
+#     T[3, 3] = 1
+#     T[0:3, 3] = dxyz.transpose()
+#     DCM = cv2.Rodrigues(rod)
+#     T[0:3, 0:3] = DCM[0]
 
-    return T
-
-
-def DxyzDCMFromT(T):
-    """Transformation matrix
-
-        Homogeneous transformation matrix from DCM
-    """
-    dxyz = T[0:3, 3]
-    dxyz = dxyz.transpose()
-    rod, j = cv2.Rodrigues(T[0:3, 0:3])
-    rod = rod.transpose()
-
-    return dxyz, rod[0]
+#     return T
 
 
-def points2image(dxyz, rod, K, P, dist):
-    """Converts world points into image points
+# def DxyzDCMFromT(T):
+#     """Transformation matrix
 
-        Computes the list of pixels given by the projection of P 3D points onto the image given the postion and intrinsics of the camera
-    """
+#         Homogeneous transformation matrix from DCM
+#     """
+#     dxyz = T[0:3, 3]
+#     dxyz = dxyz.transpose()
+#     rod, j = cv2.Rodrigues(T[0:3, 0:3])
+#     rod = rod.transpose()
 
-    # Compute T matrix from dxyz and rod
-    T = TFromDxyzDCM(dxyz, rod)
+#     return dxyz, rod[0]
 
-    points2imageFromT(T, K, P, dist)
+
+# def points2image(dxyz, rod, K, P, dist):
+#     """Converts world points into image points
+
+#         Computes the list of pixels given by the projection of P 3D points onto the image given the postion and intrinsics of the camera
+#     """
+
+#     # Compute T matrix from dxyz and rod
+#     T = TFromDxyzDCM(dxyz, rod)
+
+#     points2imageFromT(T, K, P, dist)
 
 
 def points2imageFromT(T, K, P, dist):
@@ -133,38 +133,28 @@ def points2imageFromT(T, K, P, dist):
 def costFunction(x0, dist, intrinsics):
     """Cost function
     """
-    # Geometric transformation
-    worldPoints = np.zeros((len(marks)*4, 4))
-    st = N*K
-    for i in range(4*len(marks)):
-        worldPoints[i, :] = x0[st+i*4: st+i*4+4]
 
-    for i in range(K):
-        s[i].worldPoints = np.zeros((len(s[i].ids)*4, 4))
-        for j in range(len(s[i].ids)):
-            n = [e for e in range(len(marks))
-                 if marks[e].id == s[i].ids[j]]
-            s[i].worldPoints[j*4:j*4+4, :] = worldPoints[n[0]*4:n[0]*4+4, :]
-
-    for k in range(K):
-        dxyz = x0[k*N: k*N+3]
-        rod = x0[k*N+3: k*N+6]
-
-        s[k].xypix = points2image(
-            dxyz, rod, intrinsics, s[k].worldPoints, dist)
-
-        ### Draw iterate projections ###
+    detections.fromVector(list(x0))
 
     # Cost calculation
     sum_dist = 0
 
-    for ni in range(K):
+    for k in range(K):
+        for detection in detections:
 
-        sum_dist = sum_dist + sum((s[ni].pix[:, 0] - s[ni].xypix[:, 0])
-                                  ** 2 + (s[ni].pix[:, 1] - s[ni].xypix[:, 1])**2)
+            T = detection.getT()
 
-    fc = sum_dist ** (1/2.0)
-    cost = fc
+            xypix = points2imageFromT(T, intrinsics, Pc, dist)
+
+            for j in range(len(s[k].ids)):
+                if detection.camera[1:] == str(k) and str(s[k].ids[j][0]) == detection.aruco[1:]:
+
+                    sum_dist = sum_dist + sum((s[k].corners[j][0][:, 0] - xypix[:, 0])
+                                              ** 2 + (s[k].corners[j][0][:, 1] - xypix[:, 1])**2)
+
+    ### Draw iterate projections ###
+
+    cost = sum_dist ** (1/2.0)
 
     return cost
 
@@ -200,7 +190,7 @@ if __name__ == "__main__":
 
     # Read all images (each image correspond to a camera)
     images = sorted(
-        glob.glob((os.path.join('../CameraImages/DataSet8', '*.png'))))
+        glob.glob((os.path.join('../CameraImages/DataSet1', '*.png'))))
 
     K = len(images)
 
@@ -245,7 +235,7 @@ if __name__ == "__main__":
 
         if np.all(nids != 0):
             print "----------------------------"
-            print("Camera " + str(k))
+            print("> Camera " + str(k))
             s[k].rvec, s[k].tvec, _ = aruco.estimatePoseSingleMarkers(
                 s[k].corners, marksize, mtx, dist)  # Estimate pose of each marker
 
@@ -275,12 +265,12 @@ if __name__ == "__main__":
         ax.axis('off')
         plt.title("camera " + str(k))
 
-    # Get list of interest points in image
-    for i in range(K):
-        num_marks = len(s[i].ids)
-        s[i].pix = np.zeros((4*num_marks, 2))
-        for j in range(num_marks):
-            s[i].pix[j*4: j*4+4, 0: 2] = s[i].corners[j][0]
+    # # Get list of interest points in image
+    # for i in range(K):
+    #     num_marks = len(s[i].ids)
+    #     s[i].pix = np.zeros((4*num_marks, 2))
+    #     for j in range(num_marks):
+    #         s[i].pix[j*4: j*4+4, 0: 2] = s[i].corners[j][0]
 
     #---------------------------------------
     #--- Initial guess for parameters (create x0).
@@ -360,8 +350,8 @@ if __name__ == "__main__":
 
             T = np.matmul(T, Ti)
 
-            print("Ti = \n" + str(Ti))
-            print("T = \n" + str(T))
+            # print("Ti = \n" + str(Ti))
+            # print("T = \n" + str(T))
 
         if node[0] == 'C':  # node is a camera
             # derive rvec tvec from T
@@ -375,18 +365,19 @@ if __name__ == "__main__":
     Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
                    [l/2, -l/2, 0], [-l/2, -l/2, 0]])
 
-    for detection in detections:
+    for k in range(K):
+        for detection in detections:
 
-        # print(detection)
-        T = detection.getT()
-        # print T
+            T = detection.getT()
 
-        xypix = points2imageFromT(T, intrinsics, Pc, dist)
+            xypix = points2imageFromT(T, intrinsics, Pc, dist)
 
-        # Draw intial projections
-        ax = fig1.add_subplot(2, (K+1)/2, k+1)
-        ax.plot(xypix[:, 0], xypix[:, 1], 'gd')
-        ax.text(xypix[0, 0], xypix[0, 1], detection.aruco, color='yellow')
+            if detection.camera[1:] == str(k):
+                # Draw intial projections
+                ax = fig1.add_subplot(2, (K+1)/2, k+1)
+                ax.plot(xypix[:, 0], xypix[:, 1], 'gd')
+                ax.text(xypix[0, 0], xypix[0, 1],
+                        detection.aruco, color='yellow')
 
     # Draw projection 3D
     fig2 = plt.figure()
