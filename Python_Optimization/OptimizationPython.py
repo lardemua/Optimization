@@ -354,11 +354,11 @@ if __name__ == "__main__":
 
             Ti = det.getT()
 
-            if is_camera:  # start is an aruco type node #seems to be validated!
+            if not is_camera:  # start is an aruco type node #seems to be validated!
                 print('Will invert...')
                 Ti = inv(Ti)
 
-            T = np.matmul(Ti, T)
+            T = np.matmul(T, Ti)
 
             print("Ti = \n" + str(Ti))
             print("T = \n" + str(T))
