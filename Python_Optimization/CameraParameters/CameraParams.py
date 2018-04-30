@@ -28,7 +28,7 @@ objpoints = []  # 3d point in real world space
 imgpoints = []  # 2d points in image plane.
 imagename = []  # Nome das imagens
 
-images = glob.glob((os.path.join('../images', '*.jpg')))
+images = glob.glob((os.path.join('../../images', '*.jpg')))
 
 for fname in tqdm(images):
     print fname

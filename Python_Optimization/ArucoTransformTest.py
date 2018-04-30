@@ -205,7 +205,7 @@ if __name__ == "__main__":
     K = len(images)
 
     # Read data calibration camera (Dictionary elements -> "mtx", "dist")
-    d = np.load("cameraParameters.npy")
+    d = np.load("CameraParameters/cameraParameters.npy")
 
     # Define aruco dictionary
     aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
@@ -350,11 +350,11 @@ if __name__ == "__main__":
 
             Ti = det.getT()
 
-            if not is_camera:  # start is an aruco type node #seems to be validated!
+            if is_camera:  # start is an aruco type node #seems to be validated!
                 print('Will invert')
                 Ti = inv(Ti)
 
-            T = np.matmul(T, Ti)
+            T = np.matmul(Ti, T)
 
             print("Ti = \n" + str(Ti))
             print("T = \n" + str(T))
@@ -412,9 +412,10 @@ if __name__ == "__main__":
 
     s = 0.1
     # Define in the Origin of the A595 reference system
-    P_A444 = np.array([[0, 0, 0, 1], [s, 0, 0, 1], [0, s, 0, 1], [0, 0, s, 1]], dtype=np.float).transpose()
-    P_O = np.array([[0, 0, 0, 1], [s, 0, 0, 1], [0, s, 0, 1], [0, 0, s, 1]], dtype=np.float).transpose()
-
+    P_A444 = np.array([[0, 0, 0, 1], [s, 0, 0, 1], [0, s, 0, 1], [
+                      0, 0, s, 1]], dtype=np.float).transpose()
+    P_O = np.array([[0, 0, 0, 1], [s, 0, 0, 1], [0, s, 0, 1],
+                    [0, 0, s, 1]], dtype=np.float).transpose()
 
     print(A444_T_C0)
     print(inv(A444_T_C0))
@@ -433,20 +434,20 @@ if __name__ == "__main__":
     # Plot all the points. The test consists in seeing of P_A444 and P_A444_2 are coincident
 
     def myPlot(P, label):
-        #Function to plot origin and reference system
-        o = P[0:3,0] 
-        x = P[0:3,1] 
-        y = P[0:3,2] 
-        z = P[0:3,3] 
-        #print(o)
-        #print(x)
-        #print(y)
-        #print(z)
+        # Function to plot origin and reference system
+        o = P[0:3, 0]
+        x = P[0:3, 1]
+        y = P[0:3, 2]
+        z = P[0:3, 3]
+        # print(o)
+        # print(x)
+        # print(y)
+        # print(z)
         ax3D.plot([o[0]], [o[1]], [o[2]], 'cs')
         ax3D.text(o[0], o[1], o[2], label, color='darkorchid')
-        ax3D.plot([o[0], x[0]], [o[1], x[1]], [o[2], x[2]], 'r-') #x axis
-        ax3D.plot([o[0], y[0]], [o[1], y[1]], [o[2], y[2]], 'g-') #y axis
-        ax3D.plot([o[0], z[0]], [o[1], z[1]], [o[2], z[2]], 'b-') #z axis
+        ax3D.plot([o[0], x[0]], [o[1], x[1]], [o[2], x[2]], 'r-')  # x axis
+        ax3D.plot([o[0], y[0]], [o[1], y[1]], [o[2], y[2]], 'g-')  # y axis
+        ax3D.plot([o[0], z[0]], [o[1], z[1]], [o[2], z[2]], 'b-')  # z axis
 
         ax3D.text(x[0], x[1], x[2], 'x', color='red')
         ax3D.text(y[0], y[1], y[2], 'y', color='green')
@@ -456,8 +457,6 @@ if __name__ == "__main__":
     myPlot(P_C0, 'P_C0')
     myPlot(P_A595, 'P_A595')
 
-
-
     #P = P_A444_2
     #ax3D.plot([P[0]], [P[1]], [P[2]], marker='x',color='blue', markersize=16, linewidth=14)
     #ax3D.text(P[0], P[1], P[2], 'P_A444_2', color='darkorchid')
@@ -466,7 +465,6 @@ if __name__ == "__main__":
     ax3D.set_ylabel('Y')
     ax3D.set_zlabel('Z')
     ax3D.set_aspect('equal')
-
 
     #---------------------------------------
     #--- End of test Miguel

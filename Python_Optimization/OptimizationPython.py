@@ -205,7 +205,7 @@ if __name__ == "__main__":
     K = len(images)
 
     # Read data calibration camera (Dictionary elements -> "mtx", "dist")
-    d = np.load("cameraParameters.npy")
+    d = np.load("CameraParameters/cameraParameters.npy")
 
     # Define aruco dictionary
     aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
@@ -324,7 +324,7 @@ if __name__ == "__main__":
     print('GA is connected ' + str(nx.is_connected(GA)))
     print "----------------------------\n"
 
-    map_node = 'A564'  # to be defined by hand
+    map_node = 'C0'  # to be defined by hand
     X = MyX()
 
     # cycle all nodes in graph

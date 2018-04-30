@@ -226,7 +226,7 @@ if __name__ == "__main__":
     #--- Intitialization
     #---------------------------------------
 
-    d = np.load("cameraParametersChess.npy")
+    d = np.load("../CameraParameters/cameraParametersChess.npy")
     # Dictionary elements -> "mtx", "dist", "rvecs", "tvecs"
 
     # Intrinsic matrix
@@ -253,9 +253,9 @@ if __name__ == "__main__":
     imgpoints = []  # 2d points in image plane.
 
     s = [stru() for i in range(3)]
-    s[0].filename = '../images/0001.jpg'  # 8
-    s[1].filename = '../images/0014.jpg'  # 11
-    s[2].filename = '../images/0024.jpg'  # 3
+    s[0].filename = '../../images/0001.jpg'  # 8
+    s[1].filename = '../../images/0014.jpg'  # 11
+    s[2].filename = '../../images/0024.jpg'  # 3
 
     K = len(s)
 
