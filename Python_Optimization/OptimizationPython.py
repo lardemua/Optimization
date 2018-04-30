@@ -244,7 +244,8 @@ if __name__ == "__main__":
         nids = len(s[k].ids)
 
         if np.all(nids != 0):
-            print("camera " + str(k))
+            print "----------------------------"
+            print("Camera " + str(k))
             s[k].rvec, s[k].tvec, _ = aruco.estimatePoseSingleMarkers(
                 s[k].corners, marksize, mtx, dist)  # Estimate pose of each marker
 
@@ -317,16 +318,20 @@ if __name__ == "__main__":
     nx.draw(GA, pos, node_color='#A0CBE2', edgelist=edges, edge_color=weights, width=6,
             edge_cmap=plt.cm.Greys_r, with_labels=True, alpha=1, node_size=3500, font_color='k', edge_labels=edge_labels)
 
+    print "----------------------------\n\n" + "Created Nodes:"
     print GA.nodes
+    print "\n" + "----------------------------"
     print('GA is connected ' + str(nx.is_connected(GA)))
+    print "----------------------------\n"
 
-    map_node = 'A446'  # 'A595'  # to be defined by hand
+    map_node = 'A564'  # to be defined by hand
     X = MyX()
 
     # cycle all nodes in graph
     for node in GA.nodes:
 
-        print('Solving for ' + node)
+        print "--------------------------------------------------------"
+        print('Solving for ' + node + "...")
         path = nx.shortest_path(GA, map_node, node)
 
         T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
@@ -350,14 +355,10 @@ if __name__ == "__main__":
             Ti = det.getT()
 
             if is_camera:  # start is an aruco type node #seems to be validated!
-                print('Will invert')
+                print('Will invert...')
                 Ti = inv(Ti)
-                # orientation = Ti[0:3, 0:3].transpose()
-                # location = -orientation.dot(Ti[0:3, 3])
-                # Ti[0:3, 0:3] = orientation
-                # Ti[0:3, 3] = location
 
-            T = Ti.dot(T)
+            T = np.matmul(Ti, T)
 
             print("Ti = \n" + str(Ti))
             print("T = \n" + str(T))

@@ -320,7 +320,7 @@ if __name__ == "__main__":
     print GA.nodes
     print('GA is connected ' + str(nx.is_connected(GA)))
 
-    #map_node = 'A446'  # to be defined by hand
+    # map_node = 'A446'  # to be defined by hand
     map_node = 'A595'  # to be defined by hand
     X = MyX()
 
@@ -353,12 +353,8 @@ if __name__ == "__main__":
             if is_camera:  # start is an aruco type node #seems to be validated!
                 print('Will invert')
                 Ti = inv(Ti)
-                # orientation = Ti[0:3, 0:3].transpose()
-                # location = -orientation.dot(Ti[0:3, 3])
-                # Ti[0:3, 0:3] = orientation
-                # Ti[0:3, 3] = location
 
-            T = Ti.dot(T)
+            T = np.matmul(Ti, T)
 
             print("Ti = \n" + str(Ti))
             print("T = \n" + str(T))
@@ -398,31 +394,33 @@ if __name__ == "__main__":
     ax3D.set_aspect('equal')
     X.plotArucosIn3D(ax3D)
 
-
     #---------------------------------------
     #--- Test Miguel
     #---------------------------------------
 
-    #Get the transforms
+    # Get the transforms
     A444_T_C0 = detections[0].getT()
     A595_T_C0 = detections[1].getT()
 
-    #Define in the Origin of the A595 reference system
-    P_A595 = np.array([0,0,0,1], dtype=np.float)
+    # Define in the Origin of the A595 reference system
+    P_A595 = np.array([0, 0, 0, 1], dtype=np.float)
 
-    #Compute the P_A595 transformed to the C0 reference system
+    # Compute the P_A595 transformed to the C0 reference system
     P_C0 = np.matmul(A595_T_C0, P_A595)
 
-    #Compute the P_A595 transformed to the A444 reference system in two ways (should give the same result)
+    # Compute the P_A595 transformed to the A444 reference system in two ways (should give the same result)
 
-    #By using the previously obtained P_C0
+    # By using the previously obtained P_C0
     P_A444 = np.matmul(inv(A444_T_C0), P_C0)
 
-    #By first combining all transformations from A595 to A444 and them multiplying the A595 point
+    # By first combining all transformations from A595 to A444 and them multiplying the A595 point
     P_A444_2 = np.matmul(np.matmul(inv(A444_T_C0), A595_T_C0), P_A595)
 
+    # Plot all the points. The test consists in seeing of P_A444 and P_A444_2 are coincident
+    P = P_A595
+    ax3D.plot([P[0]], [P[1]], [P[2]], 'cs')
+    ax3D.text(P[0], P[1], P[2], 'P_A595', color='darkorchid')
 
-    #Plot all the points. The test consists in seeing of P_A444 and P_A444_2 are coincident
     P = P_C0
     ax3D.plot([P[0]], [P[1]], [P[2]], 'cs')
     ax3D.text(P[0], P[1], P[2], 'P_C0', color='darkorchid')
@@ -432,14 +430,13 @@ if __name__ == "__main__":
     ax3D.text(P[0], P[1], P[2], 'P_A444', color='darkorchid')
 
     P = P_A444_2
-    ax3D.plot([P[0]], [P[1]], [P[2]], marker='x', color='blue', markersize=16, linewidth=14)
+    ax3D.plot([P[0]], [P[1]], [P[2]], marker='x',
+              color='blue', markersize=16, linewidth=14)
     ax3D.text(P[0], P[1], P[2], 'P_A444_2', color='darkorchid')
-
 
     #---------------------------------------
     #--- End of test Miguel
     #---------------------------------------
-
 
     plt.show()
     exit()

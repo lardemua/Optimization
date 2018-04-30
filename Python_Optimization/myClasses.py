@@ -71,7 +71,7 @@ class MyTransform(MyRodrigues, MyPoint3D):
         self.r3 = rod[2]
 
     def printValues(self):
-        return "xyz = " + str(self.x) + ", " + str(self.y) + ", " + str(self.z) + " rod= " + str(self.r1) + ", " + str(self.r2) + ", " + str(self.r3)
+        return "xyz = " + str(self.x) + ", " + str(self.y) + ", " + str(self.z) + "\n" + "rod = " + str(self.r1) + ", " + str(self.r2) + ", " + str(self.r3)
 
 
 class MyDetection(MyTransform):
@@ -81,7 +81,7 @@ class MyDetection(MyTransform):
         self.aruco = ar
 
     def __str__(self):
-        return "Detection from camera " + str(self.camera) + " of aruco " + str(self.aruco)
+        return "\nDetection from camera " + str(self.camera) + " of aruco " + str(self.aruco) + ":"
 
 
 class MyCamera(MyTransform):
