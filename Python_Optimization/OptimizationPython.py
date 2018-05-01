@@ -130,29 +130,38 @@ def points2imageFromT(T, K, P, dist):
     return np.array(xypix)
 
 
-def costFunction(x0, dist, intrinsics):
+def costFunction(x0, dist, intrinsics, X, Pc):
     """Cost function
     """
 
-    detections.fromVector(list(x0))
+    X.fromVector(list(x0))
 
     # Cost calculation
     sum_dist = 0
 
     for k in range(K):
-        for detection in detections:
+        camera = [camera for camera in X.cameras if camera.id == str(k)][0]
 
-            T = detection.getT()
+        for j in range(len(s[k].ids)):
+
+            a_id = s[k].ids[j]
+            aruco = [aruco for aruco in X.arucos if aruco.id ==
+                     str(a_id[0])][0]
+
+            Ta = aruco.getT()
+            Tc = camera.getT()
+            T = np.matmul(inv(Tc), Ta)
 
             xypix = points2imageFromT(T, intrinsics, Pc, dist)
 
-            for j in range(len(s[k].ids)):
-                if detection.camera[1:] == str(k) and str(s[k].ids[j][0]) == detection.aruco[1:]:
+            # # Draw intial projections
+            # ax = fig1.add_subplot(2, (K+1)/2, k+1)
+            # ax.plot(xypix[:, 0], xypix[:, 1], 'g.')
+            # ax.text(xypix[0, 0], xypix[0, 1],
+            #         "A" + str(a_id[0]), color='yellow')
 
-                    sum_dist = sum_dist + sum((s[k].corners[j][0][:, 0] - xypix[:, 0])
-                                              ** 2 + (s[k].corners[j][0][:, 1] - xypix[:, 1])**2)
-
-    ### Draw iterate projections ###
+            sum_dist = sum_dist + sum((s[k].corners[j][0][:, 0] - xypix[:, 0])
+                                      ** 2 + (s[k].corners[j][0][:, 1] - xypix[:, 1])**2)
 
     cost = sum_dist ** (1/2.0)
 
@@ -265,13 +274,6 @@ if __name__ == "__main__":
         ax.axis('off')
         plt.title("camera " + str(k))
 
-    # # Get list of interest points in image
-    # for i in range(K):
-    #     num_marks = len(s[i].ids)
-    #     s[i].pix = np.zeros((4*num_marks, 2))
-    #     for j in range(num_marks):
-    #         s[i].pix[j*4: j*4+4, 0: 2] = s[i].corners[j][0]
-
     #---------------------------------------
     #--- Initial guess for parameters (create x0).
     #---------------------------------------
@@ -366,18 +368,23 @@ if __name__ == "__main__":
                    [l/2, -l/2, 0], [-l/2, -l/2, 0]])
 
     for k in range(K):
-        for detection in detections:
+        camera = [camera for camera in X.cameras if camera.id == str(k)][0]
 
-            T = detection.getT()
+        for a_id in s[k].ids:
+            aruco = [aruco for aruco in X.arucos if aruco.id ==
+                     str(a_id[0])][0]
+
+            Ta = aruco.getT()
+            Tc = camera.getT()
+            T = np.matmul(inv(Tc), Ta)
 
             xypix = points2imageFromT(T, intrinsics, Pc, dist)
 
-            if detection.camera[1:] == str(k):
-                # Draw intial projections
-                ax = fig1.add_subplot(2, (K+1)/2, k+1)
-                ax.plot(xypix[:, 0], xypix[:, 1], 'gd')
-                ax.text(xypix[0, 0], xypix[0, 1],
-                        detection.aruco, color='yellow')
+            # Draw intial projections
+            ax = fig1.add_subplot(2, (K+1)/2, k+1)
+            ax.plot(xypix[:, 0], xypix[:, 1], 'rd')
+            ax.text(xypix[0, 0], xypix[0, 1],
+                    "A" + str(a_id[0]), color='yellow')
 
     # Draw projection 3D
     fig2 = plt.figure()
@@ -389,8 +396,8 @@ if __name__ == "__main__":
     ax3D.set_aspect('equal')
     X.plotArucosIn3D(ax3D)
 
-    plt.show()
-    exit()
+    # plt.show()
+    # exit()
 
     #---------------------------------------
     #--- Test call of objective function
@@ -431,25 +438,20 @@ if __name__ == "__main__":
     #---------------------------------------
     print("\n\nStarting minimization")
 
+    X.toVector()
+    x0 = np.array(X.v, dtype=np.float)
+
     # --- Without sparsity matrix
     t0 = time.time()
 
-    res = least_squares(costFunction, np.array(X.v), verbose=2, x_scale='jac',
-                        ftol=1e-10, xtol=1e-10, method='trf', args=(dist, intrinsics))
+    res = least_squares(costFunction, x0, verbose=2, x_scale='jac',
+                        ftol=1e-10, xtol=1e-10, method='trf', args=(dist, intrinsics, X, Pc))
     # bounds=bounds
     t1 = time.time()
 
-    print("Optimization took {0:.0f} seconds".format(t1 - t0))
+    print("\nOptimization took {0:.0f} seconds".format(t1 - t0))
 
-    for k in tqdm(range(K)):
-        ax = fig1.add_subplot(2, (K+1)/2, k+1)
-        ax.plot(s[k].xypix[:, 0], s[k].xypix[:, 1], 'y*')
-        ax.plot(s[k].xypix[0, 0], s[k].xypix[0, 1], 'g*')
-
-    fig1.show()
-    fig2.show()
-    fig3.show()
-    plt.waitforbuttonpress()
+    plt.show()
 
     #---------------------------------------
     #--- Present the results

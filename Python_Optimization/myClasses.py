@@ -193,7 +193,7 @@ class MyX:
         for i in range(len(self.arucos)):
             self.v.extend([self.arucos[i].r1, self.arucos[i].r2, self.arucos[i].r3,
                            self.arucos[i].x, self.arucos[i].y, self.arucos[i].z])
-        print self.v
+        # print self.v
 
     def fromVector(self, v):
         n_cameras = len(self.cameras)
