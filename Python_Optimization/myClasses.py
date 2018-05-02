@@ -3,19 +3,6 @@ import numpy as np
 import cv2
 
 
-class stru:
-    def __init__(self):
-        self.filename = None
-        self.raw = None
-        self.gray = None
-        self.corners = None
-        self.rvec = None
-        self.tvec = None
-        self.pix = None
-        self.worldPoints = None
-        self.xypix = None
-
-
 class MyPoint3D:
     def __init__(self):
         self.x = None
@@ -75,10 +62,11 @@ class MyTransform(MyRodrigues, MyPoint3D):
 
 
 class MyDetection(MyTransform):
-    def __init__(self, rvec, tvec, cam, ar):
+    def __init__(self, rvec, tvec, cam, ar, corner):
         MyTransform.__init__(self, rvec, tvec)
         self.camera = cam
         self.aruco = ar
+        self.corner = corner
 
     def __str__(self):
         return "\nDetection from camera " + str(self.camera) + " of aruco " + str(self.aruco) + ":"
@@ -102,7 +90,7 @@ class MyX:
         self.arucos = []
         self.v = []
 
-    def plotArucosIn3D(self, ax3D):
+    def plotArucosIn3D(self, ax3D, symbol):
 
         # Define global reference marker
         l = 0.082
@@ -149,7 +137,7 @@ class MyX:
 
             # Draw aruco point 3D
             wp = wp.transpose()
-            ax3D.plot(wp[0, :], wp[1, :], wp[2, :], 'k.')
+            ax3D.plot(wp[0, :], wp[1, :], wp[2, :], symbol)
 
         for camera in self.cameras:
             T = camera.getT()

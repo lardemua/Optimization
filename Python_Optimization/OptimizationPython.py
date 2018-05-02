@@ -31,6 +31,7 @@ from itertools import combinations
 #--- DEFINITIONS
 #-------------------------------------------------------------------------------
 from myClasses import *
+from costFunctions import *
 
 #-------------------------------------------------------------------------------
 #--- HEADER
@@ -49,125 +50,6 @@ __status__ = "Development"
 #--- FUNCTION DEFINITION
 #-------------------------------------------------------------------------------
 
-
-# def TFromDxyzDCM(dxyz, rod):
-#     """Transformation matrix
-
-#         Homogeneous transformation matrix from dxyz and rod
-#     """
-#     T = np.zeros((4, 4))
-#     T[3, 3] = 1
-#     T[0:3, 3] = dxyz.transpose()
-#     DCM = cv2.Rodrigues(rod)
-#     T[0:3, 0:3] = DCM[0]
-
-#     return T
-
-
-# def DxyzDCMFromT(T):
-#     """Transformation matrix
-
-#         Homogeneous transformation matrix from DCM
-#     """
-#     dxyz = T[0:3, 3]
-#     dxyz = dxyz.transpose()
-#     rod, j = cv2.Rodrigues(T[0:3, 0:3])
-#     rod = rod.transpose()
-
-#     return dxyz, rod[0]
-
-
-# def points2image(dxyz, rod, K, P, dist):
-#     """Converts world points into image points
-
-#         Computes the list of pixels given by the projection of P 3D points onto the image given the postion and intrinsics of the camera
-#     """
-
-#     # Compute T matrix from dxyz and rod
-#     T = TFromDxyzDCM(dxyz, rod)
-
-#     points2imageFromT(T, K, P, dist)
-
-
-def points2imageFromT(T, K, P, dist):
-
-    # Calculation of the point in the image in relation to the chess reference
-    xypix = []
-
-    fx = K[0, 0]
-    fy = K[1, 1]
-    cx = K[0, 2]
-    cy = K[1, 2]
-
-    k1 = dist[0, 0]
-    k2 = dist[0, 1]
-    p1 = dist[0, 2]
-    p2 = dist[0, 3]
-    k3 = dist[0, 4]
-
-    P = P[:, 0:3]
-
-    for p in P:
-
-        rot = np.matrix(T[0: 3, 0: 3])
-        xyz = rot.dot(p) + T[0: 3, 3]
-
-        xl = xyz[0, 0] / xyz[0, 2]
-        yl = xyz[0, 1] / xyz[0, 2]
-
-        r_square = xl**2 + yl**2
-
-        xll = xl * (1 + k1 * r_square + k2 * r_square**2 + k3 *
-                    r_square**3) + 2 * p1 * xl * yl + p2 * (r_square + 2 * xl**2)
-        yll = yl * (1 + k1 * r_square + k2 * r_square**2 + k3 *
-                    r_square**3) + p1 * (r_square + 2 * yl**2) + 2 * p2 * xl * yl
-
-        u = fx * xll + cx
-        v = fy * yll + cy
-
-        xypix.append([u, v])
-
-    return np.array(xypix)
-
-
-def costFunction(x0, dist, intrinsics, X, Pc):
-    """Cost function
-    """
-
-    X.fromVector(list(x0))
-
-    # Cost calculation
-    sum_dist = 0
-
-    for k in range(K):
-        camera = [camera for camera in X.cameras if camera.id == str(k)][0]
-
-        for j in range(len(s[k].ids)):
-
-            a_id = s[k].ids[j]
-            aruco = [aruco for aruco in X.arucos if aruco.id ==
-                     str(a_id[0])][0]
-
-            Ta = aruco.getT()
-            Tc = camera.getT()
-            T = np.matmul(inv(Tc), Ta)
-
-            xypix = points2imageFromT(T, intrinsics, Pc, dist)
-
-            # # Draw intial projections
-            # ax = fig1.add_subplot(2, (K+1)/2, k+1)
-            # ax.plot(xypix[:, 0], xypix[:, 1], 'g.')
-            # ax.text(xypix[0, 0], xypix[0, 1],
-            #         "A" + str(a_id[0]), color='yellow')
-
-            sum_dist = sum_dist + sum((s[k].corners[j][0][:, 0] - xypix[:, 0])
-                                      ** 2 + (s[k].corners[j][0][:, 1] - xypix[:, 1])**2)
-
-    cost = sum_dist ** (1/2.0)
-
-    return cost
-
-
 # def objectiveFunction(x):
 #     """Compute the error between the several aruco marker positions
 
@@ -177,7 +59,6 @@ def costFunction(x0, dist, intrinsics, X, Pc):
 #     residuals = 0
 
 #     return residuals
-
 
 
 #-------------------------------------------------------------------------------
@@ -198,10 +79,8 @@ if __name__ == "__main__":
     #---------------------------------------
 
     # Read all images (each image correspond to a camera)
-    images = sorted(
-        glob.glob((os.path.join('../CameraImages/DataSet5', '*.png'))))
-
-    K = len(images)
+    filenames = sorted(
+        glob.glob((os.path.join('../CameraImages/DataSet1', '*.png'))))
 
     # Read data calibration camera (Dictionary elements -> "mtx", "dist")
     d = np.load("CameraParameters/cameraParameters.npy")
@@ -211,96 +90,71 @@ if __name__ == "__main__":
     parameters = aruco.DetectorParameters_create()
     marksize = 0.082
 
-    # Intrinsic matrix
+    # Intrinsic matrix and distortion vector
     mtx = d.item().get('mtx')
     intrinsics = np.zeros((3, 4))
     intrinsics[:, :3] = mtx
-
     dist = d.item().get('dist')
-
-    # Detect Aruco Markers
-    s = [stru() for i in range(K)]
-
-    for i in range(K):
-        s[i].filename = images[i]
 
     fig1 = plt.figure()
 
+    # Detect Aruco Markers
     detections = []
 
-    for k in range(K):
+    K = len(filenames)  # number of cameras
+    k = 0
+    for filename in filenames:
 
         # load image
-        s[k].raw = cv2.imread(s[k].filename)
-        s[k].gray = cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2GRAY)
+        raw = cv2.imread(filename)
+        gray = cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY)
 
         # lists of ids and the corners beloning to each id
-        s[k].corners, s[k].ids, rejectedImgPoints = aruco.detectMarkers(
-            s[k].gray, aruco_dict, parameters=parameters)
+        corners, ids, _ = aruco.detectMarkers(
+            gray, aruco_dict, parameters=parameters)
 
         font = cv2.FONT_HERSHEY_SIMPLEX  # font for displaying text
 
-        nids = len(s[k].ids)
-
-        if np.all(nids != 0):
+        if len(ids) > 0:
             print "----------------------------"
             print("> Camera " + str(k))
-            s[k].rvec, s[k].tvec, _ = aruco.estimatePoseSingleMarkers(
-                s[k].corners, marksize, mtx, dist)  # Estimate pose of each marker
+            rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(
+                corners, marksize, mtx, dist)  # Estimate pose of each marker
 
-            for i in range(len(s[k].rvec)):
-                rvec = s[k].rvec[i][0]
-                tvec = s[k].tvec[i][0]
-
+            for rvec, tvec, idd, corner in zip(rvecs, tvecs, ids, corners):
                 detection = MyDetection(
-                    rvec, tvec, 'C' + str(k), 'A' + str(s[k].ids[i][0]))
+                    rvec[0], tvec[0], 'C' + str(k), 'A' + str(idd[0]), corner)
 
                 print(detection)
                 print(detection.printValues())
                 detections.append(detection)
 
-            for i in range(nids):
-                aruco.drawAxis(s[k].raw, mtx, dist, s[k].rvec[i],
-                               s[k].tvec[i], 0.05)  # Draw Axis
+                aruco.drawAxis(raw, mtx, dist, rvec, tvec, 0.05)  # Draw Axis
 
-                cv2.putText(s[k].raw, "Id: " + str(s[k].ids[i][0]), (s[k].corners[i][0][0][0], s[k].corners[i][0][0][1]),
-                            font, 5, (76, 0, 153), 5, cv2.LINE_AA)
+                cv2.putText(raw, "Id:" + str(idd[0]), (corner[0][0, 0], corner[0][0, 1]),
+                            font, 5, (0, 255, 0), 5, cv2.LINE_AA)
 
-            s[k].raw = aruco.drawDetectedMarkers(s[k].raw, s[k].corners)
+            raw = aruco.drawDetectedMarkers(raw, corners)
 
         # drawing sttuff
         ax = fig1.add_subplot(2, (K+1)/2, k+1)
-        ax.imshow(cv2.cvtColor(s[k].raw, cv2.COLOR_BGR2RGB))
+        ax.imshow(cv2.cvtColor(raw, cv2.COLOR_BGR2RGB))
         ax.axis('off')
         plt.title("camera " + str(k))
+        k = k+1
 
     #---------------------------------------
     #--- Initial guess for parameters (create x0).
     #---------------------------------------
 
-    # Find list of markers ids existents
-    list_of_ids = []
-    for i in range(K):
-        a = list_of_ids
-        b = []
-        [b.append(id[0]) for id in s[i].ids]
-        c = [e for e in b if e not in a]
-        if len(c) > 0:
-            [list_of_ids.append(ci) for ci in c]
-
     # Start the Aruco nodes graph and insert nodes (the images)
     GA = nx.Graph()
 
-    for a_id in list_of_ids:
-        # find all cameras that detected this aruco
-        cameras = []
-        for i in range(K):  # cycle all cameras
-            aruco_cam_ids = s[i].ids
-            if a_id in aruco_cam_ids:
-                GA.add_edge("A" + str(a_id), "C" + str(i), weight=1)
+    for detection in detections:
+        GA.add_edge(detection.aruco, detection.camera, weight=1)
 
-    fig3 = plt.figure()
     # Draw graph
+    fig3 = plt.figure()
     pos = nx.random_layout(GA)
     colors = range(4)
     edges, weights = zip(*nx.get_edge_attributes(GA, 'weight').items())
@@ -316,7 +170,7 @@ if __name__ == "__main__":
     print('GA is connected ' + str(nx.is_connected(GA)))
     print "----------------------------\n"
 
-    map_node = 'A595'  # to be defined by hand
+    map_node = 'C0'  # to be defined by hand
 
     if not map_node in GA.nodes:
         raise ValueError(
@@ -372,24 +226,25 @@ if __name__ == "__main__":
     Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
                    [l/2, -l/2, 0], [-l/2, -l/2, 0]])
 
-    for k in range(K):
-        camera = [camera for camera in X.cameras if camera.id == str(k)][0]
+    for detection in detections:
+        camera = [camera for camera in X.cameras if camera.id ==
+                  detection.camera[1:]][0]
 
-        for a_id in s[k].ids:
-            aruco = [aruco for aruco in X.arucos if aruco.id ==
-                     str(a_id[0])][0]
+        aruco = [aruco for aruco in X.arucos if aruco.id ==
+                 detection.aruco[1:]][0]
 
-            Ta = aruco.getT()
-            Tc = camera.getT()
-            T = np.matmul(inv(Tc), Ta)
+        Ta = aruco.getT()
+        Tc = camera.getT()
+        T = np.matmul(inv(Tc), Ta)
 
-            xypix = points2imageFromT(T, intrinsics, Pc, dist)
+        xypix = points2imageFromT(T, intrinsics, Pc, dist)
 
-            # Draw intial projections
-            ax = fig1.add_subplot(2, (K+1)/2, k+1)
-            ax.plot(xypix[:, 0], xypix[:, 1], 'rd')
-            ax.text(xypix[0, 0], xypix[0, 1],
-                    "A" + str(a_id[0]), color='yellow')
+        k = int(camera.id)
+
+        # Draw intial projections
+        ax = fig1.add_subplot(2, (K+1)/2, k+1)
+        ax.plot(xypix[:, 0], xypix[:, 1], 'rd')
+        ax.text(xypix[0, 0], xypix[0, 1], "A" + aruco.id, color='yellow')
 
     # Draw projection 3D
     fig2 = plt.figure()
@@ -399,10 +254,7 @@ if __name__ == "__main__":
     ax3D.set_ylabel('Y')
     ax3D.set_zlabel('Z')
     ax3D.set_aspect('equal')
-    X.plotArucosIn3D(ax3D)
-
-    # plt.show()
-    # exit()
+    X.plotArucosIn3D(ax3D, 'k.')
 
     #---------------------------------------
     #--- Test call of objective function
@@ -445,18 +297,41 @@ if __name__ == "__main__":
 
     X.toVector()
     x0 = np.array(X.v, dtype=np.float)
+    # cost0 = costFunction(x0, dist, intrinsics, X, Pc, detections)
+
+    # print(x0)
+
+    # import random
+    # x_random = x0 * np.array([random.uniform(0.9, 1.1)
+    #                           for _ in xrange(len(x0))], dtype=np.float)
+
+    # cost_random = costFunction(x_random, dist, intrinsics, s, X, Pc, fig1)
+    # print(x_random)
+
+    # exit(0)
 
     # --- Without sparsity matrix
     t0 = time.time()
 
-    res = least_squares(costFunction, x0, verbose=2, x_scale='jac',
-                        ftol=1e-10, xtol=1e-10, method='trf', args=(dist, intrinsics, X, Pc))
-    # bounds=bounds
+    # Method 1
+    res = least_squares(costFunction, x0, verbose=2, loss='soft_l1',
+                        f_scale=0.1, args=(dist, intrinsics, X, Pc, detections))
+
+    # Method 2
+    # res = least_squares(costFunction, x0, verbose=2, x_scale='jac', ftol=1e-10,
+    #                     xtol=1e-10, method='dogbox', args=(dist, intrinsics, X, Pc, detections))
+
+    # print(res.x)
     t1 = time.time()
 
     print("\nOptimization took {0:.0f} seconds".format(t1 - t0))
 
+    X.fromVector(list(res.x))
+    X.plotArucosIn3D(ax3D, 'g*')
+
     plt.show()
+
+    # bounds=bounds
 
     #---------------------------------------
     #--- Present the results
