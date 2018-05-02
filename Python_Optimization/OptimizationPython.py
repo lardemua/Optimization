@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
     # Read all images (each image correspond to a camera)
     images = sorted(
-        glob.glob((os.path.join('../CameraImages/DataSet1', '*.png'))))
+        glob.glob((os.path.join('../CameraImages/DataSet5', '*.png'))))
 
     K = len(images)
 
@@ -316,7 +316,12 @@ if __name__ == "__main__":
     print('GA is connected ' + str(nx.is_connected(GA)))
     print "----------------------------\n"
 
-    map_node = 'C0'  # to be defined by hand
+    map_node = 'A595'  # to be defined by hand
+
+    if not map_node in GA.nodes:
+        raise ValueError(
+            'Must define a map that exists in the graph. Should be one of ' + str(GA.nodes))
+
     X = MyX()
 
     # cycle all nodes in graph
@@ -324,7 +329,7 @@ if __name__ == "__main__":
 
         print "--------------------------------------------------------"
         print('Solving for ' + node + "...")
-        path = nx.shortest_path(GA, map_node, node)
+        path = nx.shortest_path(GA, node, map_node)
 
         T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
                       [0, 0, 0, 1]], dtype=np.float)
@@ -346,11 +351,11 @@ if __name__ == "__main__":
 
             Ti = det.getT()
 
-            if not is_camera:  # start is an aruco type node #seems to be validated!
+            if is_camera:  # Validated! When going from aruco to camera must invert the tranformation given by the aruco detection
                 print('Will invert...')
                 Ti = inv(Ti)
 
-            T = np.matmul(T, Ti)
+            T = np.matmul(Ti, T)
 
             # print("Ti = \n" + str(Ti))
             # print("T = \n" + str(T))
