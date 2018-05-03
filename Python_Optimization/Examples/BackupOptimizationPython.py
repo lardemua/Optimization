@@ -80,12 +80,12 @@ if __name__ == "__main__":
 
     # Read all images (each image correspond to a camera)
     images = sorted(
-        glob.glob((os.path.join('../CameraImages/DataSet1', '*.png'))))
+        glob.glob((os.path.join('../../CameraImages/DataSet1', '*.png'))))
 
     K = len(images)
 
     # Read data calibration camera (Dictionary elements -> "mtx", "dist")
-    d = np.load("CameraParameters/cameraParameters.npy")
+    d = np.load("../CameraParameters/cameraParameters.npy")
 
     # Define aruco dictionary
     aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)

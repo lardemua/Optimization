@@ -68,9 +68,9 @@ def costFunction(x, dist, intrinsics, X, Pc, detections):
 
         # TODO Eucledean distance wrong
         for i in range(len(xypix)):
-            distance = (detection.corner[0][i, 0] - xypix[i, 0]
-                        ) ** 2 + (detection.corner[0][i, 1] - xypix[i, 1])**2
+            distance = ((detection.corner[0][i, 0] - xypix[i, 0]
+                         ) ** 2 + (detection.corner[0][i, 1] - xypix[i, 1])**2) ** (1/2.0)
 
-            cost = cost + distance ** (1/2.0)
+            cost = cost + distance
 
     return cost

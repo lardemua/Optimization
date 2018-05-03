@@ -256,6 +256,9 @@ if __name__ == "__main__":
     ax3D.set_aspect('equal')
     X.plotArucosIn3D(ax3D, 'k.')
 
+    plt.show()
+    exit()
+
     #---------------------------------------
     #--- Test call of objective function
     #---------------------------------------
@@ -301,9 +304,9 @@ if __name__ == "__main__":
 
     # print(x0)
 
-    # import random
-    # x_random = x0 * np.array([random.uniform(0.9, 1.1)
-    #                           for _ in xrange(len(x0))], dtype=np.float)
+    import random
+    x_random = x0 * np.array([random.uniform(0.9, 1.1)
+                              for _ in xrange(len(x0))], dtype=np.float)
 
     # cost_random = costFunction(x_random, dist, intrinsics, s, X, Pc, fig1)
     # print(x_random)
