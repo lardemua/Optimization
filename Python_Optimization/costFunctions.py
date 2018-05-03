@@ -1,6 +1,10 @@
 import numpy as np
 from numpy.linalg import inv
 
+#-------------------------------------------------------------------------------
+#--- FUNCTION DEFINITION
+#-------------------------------------------------------------------------------
+
 
 def points2imageFromT(T, K, P, dist):
 
@@ -73,4 +77,17 @@ def costFunction(x, dist, intrinsics, X, Pc, detections):
 
             cost = cost + distance
 
+    cost = cost/len(detections)
+
     return cost
+
+
+# def objectiveFunction(x):
+#     """Compute the error between the several aruco marker positions
+
+#         This funcion uses the total reprojection error
+
+#     """
+#     residuals = 0
+
+#     return residuals
