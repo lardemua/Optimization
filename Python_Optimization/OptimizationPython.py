@@ -89,6 +89,8 @@ if __name__ == "__main__":
     dist = d.item().get('dist')
 
     if args['d'] or args['do']:
+        # Prepare figures
+        plt.ion()
         fig1 = plt.figure()
 
     # Detect Aruco Markers
@@ -126,8 +128,8 @@ if __name__ == "__main__":
                 if args['d'] or args['do']:
                     aruco.drawAxis(raw, mtx, dist, rvec,
                                    tvec, 0.05)  # Draw Axis
-                    cv2.putText(raw, "Id:" + str(idd[0]), (corner[0][0, 0],
-                                                           corner[0][0, 1]), font, 5, (0, 255, 0), 5, cv2.LINE_AA)
+                    # cv2.putText(raw, "Id:" + str(idd[0]), (corner[0][0, 0],
+                    #    corner[0][0, 1]), font, 5, (0, 255, 0), 5, cv2.LINE_AA)
 
             raw = aruco.drawDetectedMarkers(raw, corners)
 
@@ -140,7 +142,7 @@ if __name__ == "__main__":
 
             for corner in corners:
                 ax.scatter(corner[0][:, 0], corner[0][:, 1], marker='s',
-                           facecolors='none', edgecolors='r')
+                           facecolors='none', edgecolors='r', s=50)
         k = k+1
 
     #---------------------------------------
@@ -155,7 +157,7 @@ if __name__ == "__main__":
 
     if args['d'] or args['do']:
         # Draw graph
-        fig3 = plt.figure()
+        fig2 = plt.figure()
 
     pos = nx.random_layout(GA)
     colors = range(4)
@@ -237,9 +239,11 @@ if __name__ == "__main__":
             aruco = MyAruco(T=T, id=node[1:])
             X.arucos.append(aruco)
 
-    l = 0.082
+    l = marksize
     Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
                    [l/2, -l/2, 0], [-l/2, -l/2, 0]])
+
+    handles = []
 
     if args['d'] or args['do']:
         for detection in detections:
@@ -259,33 +263,99 @@ if __name__ == "__main__":
 
             # Draw intial projections
             ax = fig1.add_subplot(2, (K+1)/2, k+1)
-            ax.plot(xypix[:, 0], xypix[:, 1], '+c')
-            ax.text(xypix[0, 0], xypix[0, 1], "A" + aruco.id, color='yellow')
+            handle_scatter = ax.scatter(
+                xypix[:, 0], xypix[:, 1], c='c', marker='.', s=100)
+            handle_text = ax.text(
+                xypix[0, 0], xypix[0, 1], "A" + aruco.id, color='yellow')
+
+            handle = MyHandle(handle_scatter, handle_text)
+            handles.append(handle)
 
         # Draw projection 3D
-        fig2 = plt.figure()
-        ax3D = fig2.add_subplot(111, projection='3d')
+        plt.ion()
+        fig3 = plt.figure()
+        ax3D = fig3.add_subplot(111, projection='3d')
+        plt.hold(True)
         plt.title("3D projection of aruco markers")
         ax3D.set_xlabel('X')
         ax3D.set_ylabel('Y')
         ax3D.set_zlabel('Z')
         ax3D.set_aspect('equal')
-        X.plotArucosIn3D(ax3D, 'k.')
+        X.plot3D(ax3D, 'k.')
+
+        fig1.show()
+        fig3.show()
+        plt.waitforbuttonpress(0.01)
 
     # Get vector x0
     X.toVector()
     x0 = np.array(X.v, dtype=np.float)
 
+    import random
+    x_random = x0 * np.array([random.uniform(0.97, 1.03)
+                              for _ in xrange(len(x0))], dtype=np.float)
+    # x0 = x_random
+
     #---------------------------------------
     #--- Test call of objective function
     #---------------------------------------
 
+    costFunction.counter = 0
+
     # call objective function with initial guess (just for testing)
-    initial_residuals = costFunction(x0, dist, intrinsics, X, Pc, detections)
+    initial_residuals = costFunction(
+        x0, dist, intrinsics, X, Pc, detections, args, handles)
 
     print("\n-> Initial cost = " + str(initial_residuals)) + "\n"
 
     if not args['no']:
+
+        M = len(detections)
+        N = len(x0)
+
+        A = lil_matrix((M, N), dtype=int)
+
+        id_detection = 0
+
+        for detection in detections:
+
+            camera = [camera for camera in X.cameras if camera.id ==
+                      detection.camera[1:]][0]
+
+            idxs_camera = X.idxsFromCamera(camera.id)
+
+            aruco = [aruco for aruco in X.arucos if aruco.id ==
+                     detection.aruco[1:]][0]
+
+            idxs_aruco = X.idxsFromAruco(aruco.id)
+
+            idxs = np.append(idxs_camera, idxs_aruco)
+            # print "..."
+            # print idxs
+
+            A[id_detection, idxs] = 1
+
+            id_detection = id_detection + 1
+
+        print('A shape = ' + str(A.shape))
+        print('A =\n' + str(A.toarray()))
+
+        # def bundle_adjustment_sparsity(n_cameras, n_points, camera_indices, point_indices):
+        #     m = camera_indices.size * 2
+        #     n = n_cameras * 9 + n_points * 3
+        #     A = lil_matrix((m, n), dtype=int)
+
+        #     i = np.arange(camera_indices.size)
+        #     for s in range(9):
+        #         A[2 * i, camera_indices * 9 + s] = 1
+        #         A[2 * i + 1, camera_indices * 9 + s] = 1
+
+        #     for s in range(3):
+        #         A[2 * i, n_cameras * 9 + point_indices * 3 + s] = 1
+        #         A[2 * i + 1, n_cameras * 9 + point_indices * 3 + s] = 1
+
+        #     return A
+
         #---------------------------------------
         #--- Set the bounds for the parameters
         #---------------------------------------
@@ -319,11 +389,7 @@ if __name__ == "__main__":
 
         print("\n\nStarting minimization")
 
-        import random
-        x_random = x0 * np.array([random.uniform(0.9, 1.1)
-                                  for _ in xrange(len(x0))], dtype=np.float)
-
-        # cost_random = costFunction(x_random, dist, intrinsics, s, X, Pc, fig1)
+        # cost_random = costFunction(x_random, dist, intrinsics, s, X, Pc)
         # print(x_random)
 
         # exit(0)
@@ -333,11 +399,11 @@ if __name__ == "__main__":
 
         # # Method 1
         # res = least_squares(costFunction, x0, verbose=2, loss='soft_l1',
-        #                     f_scale=0.1, args=(dist, intrinsics, X, Pc, detections))
+        #                     f_scale=0.1, args=(dist, intrinsics, X, Pc, detections, args, handles))
 
         # Method 2
-        res = least_squares(costFunction, x0, verbose=2, x_scale='jac', ftol=1e-10,
-                            xtol=1e-10, method='dogbox', args=(dist, intrinsics, X, Pc, detections))
+        res = least_squares(costFunction, x0, verbose=2, jac_sparsity=A, x_scale='jac', ftol=1e-7,
+                            xtol=1e-7, method='trf', args=(dist, intrinsics, X, Pc, detections, args, handles))
 
         # print(res.x)
         t1 = time.time()
@@ -346,15 +412,15 @@ if __name__ == "__main__":
 
         X.fromVector(list(res.x))
 
-        if args['d'] or args['do']:
-            X.plotArucosIn3D(ax3D, 'g*')
+        # if args['d'] or args['do']:
+        #     X.plot3D(ax3D, 'g*')
 
         #---------------------------------------
         #--- Present the results
         #---------------------------------------
 
         solution_residuals = costFunction(
-            res.x, dist, intrinsics, X, Pc, detections)
+            res.x, dist, intrinsics, X, Pc, detections, args, handles)
 
         print("\nOPTIMIZATON FINISHED")
         print("Initial (x0) average error = " +
@@ -362,5 +428,5 @@ if __name__ == "__main__":
         print("Solution average error = " +
               str(np.average(solution_residuals))) + "\n"
 
-    if args['d'] or args['do']:
-        plt.show()
+    # if args['d'] or args['do']:
+    #     plt.show()

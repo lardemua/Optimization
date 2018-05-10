@@ -17,6 +17,24 @@ class MyRodrigues:
         self.r3 = None
 
 
+class MyHandle:
+    def __init__(self, handle_scatter, handle_text):
+        self.handle_scatter = handle_scatter
+        self.handle_text = handle_text
+
+
+class MyHandle3D:
+    def __init__(self, handle_scatter, handle_plotx, handle_ploty, handle_plotz, handle_text, handle_textx, handle_texty, handle_textz):
+        self.handle_scatter = handle_scatter
+        self.handle_plotx = handle_plotx
+        self.handle_ploty = handle_ploty
+        self.handle_plotz = handle_plotz
+        self.handle_text = handle_text
+        self.handle_textx = handle_textx
+        self.handle_texty = handle_texty
+        self.handle_textz = handle_textz
+
+
 class MyTransform(MyRodrigues, MyPoint3D):
     def __init__(self, rvec, tvec):
         MyPoint3D.__init__(self)
@@ -89,8 +107,10 @@ class MyX:
         self.cameras = []
         self.arucos = []
         self.v = []
+        self.ArucoHandles = []
+        self.CameraHandles = []
 
-    def plotArucosIn3D(self, ax3D, symbol):
+    def plot3D(self, ax3D, symbol):
 
         # Define global reference marker
         l = 0.082
@@ -118,26 +138,30 @@ class MyX:
                 i = i + 1
 
             # Draw aruco axis
-            ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [Ptransf[0][1], Ptransf[1][1]], [
-                      Ptransf[0][2], Ptransf[1][2]], 'r-')
-            ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [Ptransf[0][1], Ptransf[2][1]], [
-                      Ptransf[0][2], Ptransf[2][2]], 'g-')
-            ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [Ptransf[0][1], Ptransf[3][1]], [
-                      Ptransf[0][2], Ptransf[3][2]], 'b-')
+            handle_plotx = ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [
+                                     Ptransf[0][1], Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')
+            handle_ploty = ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [
+                                     Ptransf[0][1], Ptransf[2][1]], [Ptransf[0][2], Ptransf[2][2]], 'g-')
+            handle_plotz = ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [
+                                     Ptransf[0][1], Ptransf[3][1]], [Ptransf[0][2], Ptransf[3][2]], 'b-')
 
             # Draw text
-            ax3D.text(Ptransf[0][0], Ptransf[0][1],
-                      Ptransf[0][2], "A" + aruco.id, color='darkorchid')
-            ax3D.text(Ptransf[1][0], Ptransf[1][1],
-                      Ptransf[1][2], "x", color='red')
-            ax3D.text(Ptransf[2][0], Ptransf[2][1],
-                      Ptransf[2][2], "y", color='green')
-            ax3D.text(Ptransf[3][0], Ptransf[3][1],
-                      Ptransf[3][2], "z", color='blue')
+            handle_text = ax3D.text(Ptransf[0][0], Ptransf[0][1],
+                                    Ptransf[0][2], "A" + aruco.id, color='darkorchid')
+            handle_textx = ax3D.text(Ptransf[1][0], Ptransf[1][1],
+                                     Ptransf[1][2], "x", color='red')
+            handle_texty = ax3D.text(Ptransf[2][0], Ptransf[2][1],
+                                     Ptransf[2][2], "y", color='green')
+            handle_textz = ax3D.text(Ptransf[3][0], Ptransf[3][1],
+                                     Ptransf[3][2], "z", color='blue')
 
             # Draw aruco point 3D
             wp = wp.transpose()
-            ax3D.plot(wp[0, :], wp[1, :], wp[2, :], symbol)
+            handle_scatter = ax3D.scatter(wp[0, :], wp[1, :], wp[2, :], symbol)
+
+            handle = MyHandle3D(handle_scatter, handle_plotx, handle_ploty, handle_plotz,
+                                handle_text, handle_textx, handle_texty, handle_textz)
+            self.ArucoHandles.append(handle)
 
         for camera in self.cameras:
             T = camera.getT()
@@ -156,22 +180,143 @@ class MyX:
                 i = i + 1
 
             # Draw camera axis
-            ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [Ptransf[0][1], Ptransf[1][1]], [
-                      Ptransf[0][2], Ptransf[1][2]], 'r-')
-            ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [Ptransf[0][1], Ptransf[2][1]], [
-                      Ptransf[0][2], Ptransf[2][2]], 'g-')
-            ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [Ptransf[0][1], Ptransf[3][1]], [
-                      Ptransf[0][2], Ptransf[3][2]], 'b-')
+            handle_plotx = ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [
+                                     Ptransf[0][1], Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')
+            handle_ploty = ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [
+                                     Ptransf[0][1], Ptransf[2][1]], [Ptransf[0][2], Ptransf[2][2]], 'g-')
+            handle_plotz = ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [
+                                     Ptransf[0][1], Ptransf[3][1]], [Ptransf[0][2], Ptransf[3][2]], 'b-')
 
             # Draw text
-            ax3D.text(Ptransf[0][0], Ptransf[0][1],
-                      Ptransf[0][2], "C" + camera.id, color='darkorchid')
-            ax3D.text(Ptransf[1][0], Ptransf[1][1],
-                      Ptransf[1][2], "x", color='red')
-            ax3D.text(Ptransf[2][0], Ptransf[2][1],
-                      Ptransf[2][2], "y", color='green')
-            ax3D.text(Ptransf[3][0], Ptransf[3][1],
-                      Ptransf[3][2], "z", color='blue')
+            handle_text = ax3D.text(Ptransf[0][0], Ptransf[0][1],
+                                    Ptransf[0][2], "C" + camera.id, color='darkorchid')
+            handle_textx = ax3D.text(Ptransf[1][0], Ptransf[1][1],
+                                     Ptransf[1][2], "x", color='red')
+            handle_texty = ax3D.text(Ptransf[2][0], Ptransf[2][1],
+                                     Ptransf[2][2], "y", color='green')
+            handle_textz = ax3D.text(Ptransf[3][0], Ptransf[3][1],
+                                     Ptransf[3][2], "z", color='blue')
+
+            handle = MyHandle3D(None, handle_plotx, handle_ploty, handle_plotz,
+                                handle_text, handle_textx, handle_texty, handle_textz)
+            self.CameraHandles.append(handle)
+
+    def setPlot3D(self):
+
+        # Define global reference marker
+        l = 0.082
+        Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
+                       [l/2, -l/2, 0], [-l/2, -l/2, 0]])
+
+        # Referential of arucos
+        s = 0.150
+        P = np.array([[0, 0, 0], [s, 0, 0], [0, s, 0], [0, 0, s]])
+
+        for aruco, handle in zip(self.arucos, self.ArucoHandles):
+
+            T = aruco.getT()
+            rot = T[0:3, 0:3]
+            trans = T[0: 3, 3]
+
+            Ptransf = []
+            wp = np.zeros((4, 3))
+
+            for p in P:
+                Ptransf.append(rot.dot(p) + trans)
+
+            i = 0
+            for p in Pc:
+                wp[i, :] = rot.dot(p) + trans
+                i = i + 1
+
+            # # redraw plot x
+            # handle.handle_plotx.set_xdata([Ptransf[0][0], Ptransf[1][0]])
+            # handle.handle_plotx.set_ydata([Ptransf[0][1], Ptransf[1][1]])
+            # handle.handle_plotx.set_3d_properties(
+            #     zs=[Ptransf[0][2], Ptransf[1][2]])
+
+            # # redraw plot y
+            # handle.handle_ploty.set_xdata([Ptransf[0][0], Ptransf[2][0]])
+            # handle.handle_ploty.set_ydata([Ptransf[0][1], Ptransf[2][1]])
+            # handle.handle_ploty.set_3d_properties(
+            #     zs=[Ptransf[0][2], Ptransf[2][2]])
+
+            # # redraw plot z
+            # handle.handle_plotz.set_xdata([Ptransf[0][0], Ptransf[3][0]])
+            # handle.handle_plotz.set_ydata([Ptransf[0][1], Ptransf[3][1]])
+            # handle.handle_plotz.set_3d_properties(
+            #     zs=[Ptransf[0][2], Ptransf[3][2]])
+
+            # redraw text
+            handle.handle_text.set_position((Ptransf[0][0], Ptransf[0][1]))
+            handle.handle_text.set_3d_properties(z=Ptransf[0][2], zdir='x')
+
+            # redraw text x
+            handle.handle_textx.set_position((Ptransf[1][0], Ptransf[1][1]))
+            handle.handle_textx.set_3d_properties(z=Ptransf[1][2], zdir='x')
+
+            # redraw text y
+            handle.handle_texty.set_position((Ptransf[2][0], Ptransf[2][1]))
+            handle.handle_texty.set_3d_properties(z=Ptransf[2][2], zdir='x')
+
+            # redraw text z
+            handle.handle_textz.set_position((Ptransf[3][0], Ptransf[3][1]))
+            handle.handle_textz.set_3d_properties(z=Ptransf[3][2], zdir='x')
+
+            # Draw aruco point 3D
+            wp = wp.transpose()
+            # redraw scatter
+            handle.handle_scatter._offsets3d = (wp[0, :], wp[1, :], wp[2, :])
+
+        for camera, handle in zip(self.cameras, self.CameraHandles):
+            T = camera.getT()
+            rot = T[0:3, 0:3]
+            trans = T[0: 3, 3]
+
+            Ptransf = []
+            wp = np.zeros((4, 3))
+
+            for p in P:
+                Ptransf.append(rot.dot(p) + trans)
+
+            i = 0
+            for p in Pc:
+                wp[i, :] = rot.dot(p) + trans
+                i = i + 1
+
+            # # redraw plot x
+            # handle.handle_plotx.set_xdata([Ptransf[0][0], Ptransf[1][0]])
+            # handle.handle_plotx.set_ydata([Ptransf[0][1], Ptransf[1][1]])
+            # handle.handle_plotx.set_3d_properties(
+            #     zs=[Ptransf[0][2], Ptransf[1][2]])
+
+            # # redraw plot y
+            # handle.handle_ploty.set_xdata([Ptransf[0][0], Ptransf[2][0]])
+            # handle.handle_ploty.set_ydata([Ptransf[0][1], Ptransf[2][1]])
+            # handle.handle_ploty.set_3d_properties(
+            #     zs=[Ptransf[0][2], Ptransf[2][2]])
+
+            # # redraw plot z
+            # handle.handle_plotz.set_xdata([Ptransf[0][0], Ptransf[3][0]])
+            # handle.handle_plotz.set_ydata([Ptransf[0][1], Ptransf[3][1]])
+            # handle.handle_plotz.set_3d_properties(
+            #     zs=[Ptransf[0][2], Ptransf[3][2]])
+
+            # redraw text
+            handle.handle_text.set_position((Ptransf[0][0], Ptransf[0][1]))
+            handle.handle_text.set_3d_properties(z=Ptransf[0][2], zdir='x')
+
+            # redraw text x
+            handle.handle_textx.set_position((Ptransf[1][0], Ptransf[1][1]))
+            handle.handle_textx.set_3d_properties(z=Ptransf[1][2], zdir='x')
+
+            # redraw text y
+            handle.handle_texty.set_position((Ptransf[2][0], Ptransf[2][1]))
+            handle.handle_texty.set_3d_properties(z=Ptransf[2][2], zdir='x')
+
+            # redraw text z
+            handle.handle_textz.set_position((Ptransf[3][0], Ptransf[3][1]))
+            handle.handle_textz.set_3d_properties(z=Ptransf[3][2], zdir='x')
 
     def toVector(self):
         for i in range(len(self.cameras)):
@@ -181,7 +326,6 @@ class MyX:
         for i in range(len(self.arucos)):
             self.v.extend([self.arucos[i].r1, self.arucos[i].r2, self.arucos[i].r3,
                            self.arucos[i].x, self.arucos[i].y, self.arucos[i].z])
-        # print self.v
 
     def fromVector(self, v):
         n_cameras = len(self.cameras)
@@ -199,3 +343,22 @@ class MyX:
             self.arucos[i].x = v[i*6+3+n_cameras*6]
             self.arucos[i].y = v[i*6+4+n_cameras*6]
             self.arucos[i].z = v[i*6+5+n_cameras*6]
+
+    def idxsFromCamera(self, camera_name):
+        print(camera_name)
+        print([x.id for x in self.cameras])
+        idx_in_cameras = [x.id for x in self.cameras].index(camera_name)
+        print(idx_in_cameras)
+        idxs_in_X = np.array(range(6)) + 6 * idx_in_cameras
+        print(idxs_in_X)
+        return idxs_in_X
+
+    def idxsFromAruco(self, aruco_name):
+        print(aruco_name)
+        n_cameras = len(self.cameras)
+        print([x.id for x in self.arucos])
+        idx_in_arucos = [x.id for x in self.arucos].index(aruco_name)
+        print(idx_in_arucos)
+        idxs_in_X = np.array(range(6)) + 6 * idx_in_arucos + n_cameras * 6
+        print(idxs_in_X)
+        return idxs_in_X

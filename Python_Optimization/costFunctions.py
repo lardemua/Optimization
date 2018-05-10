@@ -1,5 +1,7 @@
 import numpy as np
 from numpy.linalg import inv
+import matplotlib.pyplot as plt
+import random
 
 #-------------------------------------------------------------------------------
 #--- FUNCTION DEFINITION
@@ -47,7 +49,7 @@ def points2imageFromT(T, K, P, dist):
     return np.array(xypix)
 
 
-def costFunction(x, dist, intrinsics, X, Pc, detections):
+def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles):
     """Cost function
     """
 
@@ -55,9 +57,15 @@ def costFunction(x, dist, intrinsics, X, Pc, detections):
     X.fromVector(list(x))
 
     # Cost calculation
-    cost = 0
+    cost = []
+    costFunction.counter += 1
+    # print costFunction.counter
+    multiples = [100*n for n in range(1, 100+1)]
 
-    for detection in detections:
+    if not handles:
+        handles = detections
+
+    for detection, handle in zip(detections, handles):
         camera = [camera for camera in X.cameras if camera.id ==
                   detection.camera[1:]][0]
 
@@ -70,14 +78,31 @@ def costFunction(x, dist, intrinsics, X, Pc, detections):
 
         xypix = points2imageFromT(T, intrinsics, Pc, dist)
 
-        # TODO Eucledean distance wrong
+        distanceFourPoints = 0
+
         for i in range(len(xypix)):
+
             distance = ((detection.corner[0][i, 0] - xypix[i, 0]
                          ) ** 2 + (detection.corner[0][i, 1] - xypix[i, 1])**2) ** (1/2.0)
 
-            cost = cost + distance
+            distanceFourPoints = distanceFourPoints + distance
 
-    cost = cost/len(detections)
+        cost.append(distanceFourPoints)
+
+        if args['do'] and costFunction.counter in multiples:
+
+            # draw
+            # redraw plot 2D
+            handle.handle_scatter.set_offsets(xypix[:, :])
+
+            # redraw text 2D
+            handle.handle_text.set_position((xypix[0, 0], xypix[0, 1]))
+
+            X.setPlot3D()
+
+    if args['do'] and costFunction.counter in multiples:
+        plt.draw()
+        plt.pause(0.01)
 
     return cost
 
