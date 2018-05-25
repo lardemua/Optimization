@@ -345,20 +345,20 @@ class MyX:
             self.arucos[i].z = v[i*6+5+n_cameras*6]
 
     def idxsFromCamera(self, camera_name):
-        # print(camera_name)
-        # print([x.id for x in self.cameras])
+        print(camera_name)
+        print([x.id for x in self.cameras])
         idx_in_cameras = [x.id for x in self.cameras].index(camera_name)
-        # print(idx_in_cameras)
+        print(idx_in_cameras)
         idxs_in_X = np.array(range(6)) + 6 * idx_in_cameras
-        # print(idxs_in_X)
+        print(idxs_in_X)
         return idxs_in_X
 
     def idxsFromAruco(self, aruco_name):
-        # print(aruco_name)
+        print(aruco_name)
         n_cameras = len(self.cameras)
-        # print([x.id for x in self.arucos])
+        print([x.id for x in self.arucos])
         idx_in_arucos = [x.id for x in self.arucos].index(aruco_name)
-        # print(idx_in_arucos)
+        print(idx_in_arucos)
         idxs_in_X = np.array(range(6)) + 6 * idx_in_arucos + n_cameras * 6
-        # print(idxs_in_X)
+        print(idxs_in_X)
         return idxs_in_X

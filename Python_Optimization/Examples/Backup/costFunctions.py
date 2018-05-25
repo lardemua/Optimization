@@ -49,7 +49,7 @@ def points2imageFromT(T, K, P, dist):
     return np.array(xypix)
 
 
-def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_fun):
+def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles):
     """Cost function
     """
 
@@ -101,9 +101,18 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
             X.setPlot3D()
 
     if args['do'] and costFunction.counter in multiples:
-        if handle_fun:
-            handle_fun.set_ydata(cost)
         plt.draw()
         plt.pause(0.01)
 
     return cost
+
+
+# def objectiveFunction(x):
+#     """Compute the error between the several aruco marker positions
+
+#         This funcion uses the total reprojection error
+
+#     """
+#     residuals = 0
+
+#     return residuals
