@@ -110,12 +110,7 @@ class MyX:
         self.ArucoHandles = []
         self.CameraHandles = []
 
-    def plot3D(self, ax3D, symbol):
-
-        # Define global reference marker
-        l = 0.082
-        Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
-                       [l/2, -l/2, 0], [-l/2, -l/2, 0]])
+    def plot3D(self, ax3D, symbol, Pc):
 
         # Referential of arucos
         s = 0.150
@@ -138,12 +133,12 @@ class MyX:
                 i = i + 1
 
             # Draw aruco axis
-            handle_plotx = ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [
-                                     Ptransf[0][1], Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')
-            handle_ploty = ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [
-                                     Ptransf[0][1], Ptransf[2][1]], [Ptransf[0][2], Ptransf[2][2]], 'g-')
-            handle_plotz = ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [
-                                     Ptransf[0][1], Ptransf[3][1]], [Ptransf[0][2], Ptransf[3][2]], 'b-')
+            handle_plotx, = ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [
+                Ptransf[0][1], Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')
+            handle_ploty, = ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [
+                Ptransf[0][1], Ptransf[2][1]], [Ptransf[0][2], Ptransf[2][2]], 'g-')
+            handle_plotz, = ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [
+                Ptransf[0][1], Ptransf[3][1]], [Ptransf[0][2], Ptransf[3][2]], 'b-')
 
             # Draw text
             handle_text = ax3D.text(Ptransf[0][0], Ptransf[0][1],
@@ -180,12 +175,12 @@ class MyX:
                 i = i + 1
 
             # Draw camera axis
-            handle_plotx = ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [
-                                     Ptransf[0][1], Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')
-            handle_ploty = ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [
-                                     Ptransf[0][1], Ptransf[2][1]], [Ptransf[0][2], Ptransf[2][2]], 'g-')
-            handle_plotz = ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [
-                                     Ptransf[0][1], Ptransf[3][1]], [Ptransf[0][2], Ptransf[3][2]], 'b-')
+            handle_plotx, = ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [
+                Ptransf[0][1], Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')
+            handle_ploty, = ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [
+                Ptransf[0][1], Ptransf[2][1]], [Ptransf[0][2], Ptransf[2][2]], 'g-')
+            handle_plotz, = ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [
+                Ptransf[0][1], Ptransf[3][1]], [Ptransf[0][2], Ptransf[3][2]], 'b-')
 
             # Draw text
             handle_text = ax3D.text(Ptransf[0][0], Ptransf[0][1],
@@ -201,12 +196,7 @@ class MyX:
                                 handle_text, handle_textx, handle_texty, handle_textz)
             self.CameraHandles.append(handle)
 
-    def setPlot3D(self):
-
-        # Define global reference marker
-        l = 0.082
-        Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
-                       [l/2, -l/2, 0], [-l/2, -l/2, 0]])
+    def setPlot3D(self, Pc):
 
         # Referential of arucos
         s = 0.150
@@ -229,23 +219,23 @@ class MyX:
                 wp[i, :] = rot.dot(p) + trans
                 i = i + 1
 
-            # # redraw plot x
-            # handle.handle_plotx.set_xdata([Ptransf[0][0], Ptransf[1][0]])
-            # handle.handle_plotx.set_ydata([Ptransf[0][1], Ptransf[1][1]])
-            # handle.handle_plotx.set_3d_properties(
-            #     zs=[Ptransf[0][2], Ptransf[1][2]])
+            # redraw plot x
+            handle.handle_plotx.set_xdata([Ptransf[0][0], Ptransf[1][0]])
+            handle.handle_plotx.set_ydata([Ptransf[0][1], Ptransf[1][1]])
+            handle.handle_plotx.set_3d_properties(
+                zs=[Ptransf[0][2], Ptransf[1][2]])
 
-            # # redraw plot y
-            # handle.handle_ploty.set_xdata([Ptransf[0][0], Ptransf[2][0]])
-            # handle.handle_ploty.set_ydata([Ptransf[0][1], Ptransf[2][1]])
-            # handle.handle_ploty.set_3d_properties(
-            #     zs=[Ptransf[0][2], Ptransf[2][2]])
+            # redraw plot y
+            handle.handle_ploty.set_xdata([Ptransf[0][0], Ptransf[2][0]])
+            handle.handle_ploty.set_ydata([Ptransf[0][1], Ptransf[2][1]])
+            handle.handle_ploty.set_3d_properties(
+                zs=[Ptransf[0][2], Ptransf[2][2]])
 
-            # # redraw plot z
-            # handle.handle_plotz.set_xdata([Ptransf[0][0], Ptransf[3][0]])
-            # handle.handle_plotz.set_ydata([Ptransf[0][1], Ptransf[3][1]])
-            # handle.handle_plotz.set_3d_properties(
-            #     zs=[Ptransf[0][2], Ptransf[3][2]])
+            # redraw plot z
+            handle.handle_plotz.set_xdata([Ptransf[0][0], Ptransf[3][0]])
+            handle.handle_plotz.set_ydata([Ptransf[0][1], Ptransf[3][1]])
+            handle.handle_plotz.set_3d_properties(
+                zs=[Ptransf[0][2], Ptransf[3][2]])
 
             # redraw text
             handle.handle_text.set_position((Ptransf[0][0], Ptransf[0][1]))
@@ -284,23 +274,23 @@ class MyX:
                 wp[i, :] = rot.dot(p) + trans
                 i = i + 1
 
-            # # redraw plot x
-            # handle.handle_plotx.set_xdata([Ptransf[0][0], Ptransf[1][0]])
-            # handle.handle_plotx.set_ydata([Ptransf[0][1], Ptransf[1][1]])
-            # handle.handle_plotx.set_3d_properties(
-            #     zs=[Ptransf[0][2], Ptransf[1][2]])
+            # redraw plot x
+            handle.handle_plotx.set_xdata([Ptransf[0][0], Ptransf[1][0]])
+            handle.handle_plotx.set_ydata([Ptransf[0][1], Ptransf[1][1]])
+            handle.handle_plotx.set_3d_properties(
+                zs=[Ptransf[0][2], Ptransf[1][2]])
 
-            # # redraw plot y
-            # handle.handle_ploty.set_xdata([Ptransf[0][0], Ptransf[2][0]])
-            # handle.handle_ploty.set_ydata([Ptransf[0][1], Ptransf[2][1]])
-            # handle.handle_ploty.set_3d_properties(
-            #     zs=[Ptransf[0][2], Ptransf[2][2]])
+            # redraw plot y
+            handle.handle_ploty.set_xdata([Ptransf[0][0], Ptransf[2][0]])
+            handle.handle_ploty.set_ydata([Ptransf[0][1], Ptransf[2][1]])
+            handle.handle_ploty.set_3d_properties(
+                zs=[Ptransf[0][2], Ptransf[2][2]])
 
-            # # redraw plot z
-            # handle.handle_plotz.set_xdata([Ptransf[0][0], Ptransf[3][0]])
-            # handle.handle_plotz.set_ydata([Ptransf[0][1], Ptransf[3][1]])
-            # handle.handle_plotz.set_3d_properties(
-            #     zs=[Ptransf[0][2], Ptransf[3][2]])
+            # redraw plot z
+            handle.handle_plotz.set_xdata([Ptransf[0][0], Ptransf[3][0]])
+            handle.handle_plotz.set_ydata([Ptransf[0][1], Ptransf[3][1]])
+            handle.handle_plotz.set_3d_properties(
+                zs=[Ptransf[0][2], Ptransf[3][2]])
 
             # redraw text
             handle.handle_text.set_position((Ptransf[0][0], Ptransf[0][1]))
@@ -318,47 +308,65 @@ class MyX:
             handle.handle_textz.set_position((Ptransf[3][0], Ptransf[3][1]))
             handle.handle_textz.set_3d_properties(z=Ptransf[3][2], zdir='x')
 
-    def toVector(self):
+    def toVector(self, args):
         for i in range(len(self.cameras)):
-            self.v.extend([self.cameras[i].r1, self.cameras[i].r2, self.cameras[i].r3,
-                           self.cameras[i].x, self.cameras[i].y, self.cameras[i].z])
+            self.v.extend(
+                [self.cameras[i].x, self.cameras[i].y, self.cameras[i].z,
+                 self.cameras[i].r1, self.cameras[i].r2, self.cameras[i].r3])
 
         for i in range(len(self.arucos)):
-            self.v.extend([self.arucos[i].r1, self.arucos[i].r2, self.arucos[i].r3,
-                           self.arucos[i].x, self.arucos[i].y, self.arucos[i].z])
+            if args['option2'] == 'all':
+                self.v.extend(
+                    [self.arucos[i].x, self.arucos[i].y, self.arucos[i].z,
+                     self.arucos[i].r1, self.arucos[i].r2, self.arucos[i].r3])
+            else:
+                self.v.extend(
+                    [self.arucos[i].x, self.arucos[i].y, self.arucos[i].z])
 
-    def fromVector(self, v):
+    def fromVector(self, v, args):
         n_cameras = len(self.cameras)
-        for i in range(n_cameras):
-            self.cameras[i].r1 = v[i*6]
-            self.cameras[i].r2 = v[i*6+1]
-            self.cameras[i].r3 = v[i*6+2]
-            self.cameras[i].x = v[i*6+3]
-            self.cameras[i].y = v[i*6+4]
-            self.cameras[i].z = v[i*6+5]
-        for i in range(len(self.arucos)):
-            self.arucos[i].r1 = v[i*6+n_cameras*6]
-            self.arucos[i].r2 = v[i*6+1+n_cameras*6]
-            self.arucos[i].r3 = v[i*6+2+n_cameras*6]
-            self.arucos[i].x = v[i*6+3+n_cameras*6]
-            self.arucos[i].y = v[i*6+4+n_cameras*6]
-            self.arucos[i].z = v[i*6+5+n_cameras*6]
+        if args['option2'] == 'all':
+            nvalues = 6
+        else:
+            nvalues = 3
 
-    def idxsFromCamera(self, camera_name):
+        for i in range(n_cameras):
+            self.cameras[i].x = v[i*6]
+            self.cameras[i].y = v[i*6+1]
+            self.cameras[i].z = v[i*6+2]
+            self.cameras[i].r1 = v[i*6+3]
+            self.cameras[i].r2 = v[i*6+4]
+            self.cameras[i].r3 = v[i*6+5]
+        for i in range(len(self.arucos)):
+            self.arucos[i].x = v[i*nvalues+n_cameras*6]
+            self.arucos[i].y = v[i*nvalues+1+n_cameras*6]
+            self.arucos[i].z = v[i*nvalues+2+n_cameras*6]
+            if args['option2'] == 'all':
+                self.arucos[i].r1 = v[i*nvalues+3+n_cameras*6]
+                self.arucos[i].r2 = v[i*nvalues+4+n_cameras*6]
+                self.arucos[i].r3 = v[i*nvalues+5+n_cameras*6]
+
+    def idxsFromCamera(self, camera_name, args):
+        nvalues = 6
         # print(camera_name)
         # print([x.id for x in self.cameras])
         idx_in_cameras = [x.id for x in self.cameras].index(camera_name)
         # print(idx_in_cameras)
-        idxs_in_X = np.array(range(6)) + 6 * idx_in_cameras
+        idxs_in_X = np.array(range(nvalues)) + nvalues * idx_in_cameras
         # print(idxs_in_X)
         return idxs_in_X
 
-    def idxsFromAruco(self, aruco_name):
+    def idxsFromAruco(self, aruco_name, args):
+        if args['option2'] == 'all':
+            nvalues = 6
+        else:
+            nvalues = 3
         # print(aruco_name)
         n_cameras = len(self.cameras)
         # print([x.id for x in self.arucos])
         idx_in_arucos = [x.id for x in self.arucos].index(aruco_name)
         # print(idx_in_arucos)
-        idxs_in_X = np.array(range(6)) + 6 * idx_in_arucos + n_cameras * 6
+        idxs_in_X = np.array(range(nvalues)) + nvalues * \
+            idx_in_arucos + n_cameras * nvalues
         # print(idxs_in_X)
         return idxs_in_X

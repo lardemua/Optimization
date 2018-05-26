@@ -57,6 +57,11 @@ if __name__ == "__main__":
     #---------------------------------------
 
     ap = argparse.ArgumentParser()
+
+    # ap.add_argument('--version', action='version', version='%(prog)s 2.0')
+    ap.add_argument('option1', choices=['center', 'corners'])
+    ap.add_argument('option2', choices=['all', 'translation'])
+
     ap.add_argument("-d", action='store_true',
                     help="draw initial estimation", required=False)
     ap.add_argument("-no", action='store_true',
@@ -143,8 +148,16 @@ if __name__ == "__main__":
             plt.title("camera " + str(k))
 
             for corner in corners:
-                ax.scatter(corner[0][:, 0], corner[0][:, 1],
-                           marker='s', facecolors='none', edgecolors='r', s=50)
+                if args['option1'] == 'corners':
+                    ax.scatter(corner[0][:, 0], corner[0][:, 1],
+                               marker='s', facecolors='none', edgecolors='r', s=50)
+                else:
+                    xcm = (corner[0][0, 0] + corner[0][1, 0] +
+                           corner[0][2, 0] + corner[0][3, 0])/4
+                    ycm = (corner[0][0, 1] + corner[0][1, 1] +
+                           corner[0][2, 1] + corner[0][3, 1])/4
+                    ax.scatter(xcm, ycm, marker='s',
+                               facecolors='none', edgecolors='r', s=50)
         k = k+1
 
     #---------------------------------------
@@ -242,8 +255,11 @@ if __name__ == "__main__":
             X.arucos.append(aruco)
 
     l = marksize
-    Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
-                   [l/2, -l/2, 0], [-l/2, -l/2, 0]])
+    if args['option1'] == 'corners':
+        Pc = np.array([[-l/2, l/2, 0], [l/2, l/2, 0],
+                       [l/2, -l/2, 0], [-l/2, -l/2, 0]])
+    else:
+        Pc = np.array([[0, 0, 0]])
 
     handles = []
 
@@ -283,18 +299,20 @@ if __name__ == "__main__":
         ax3D.set_ylabel('Y')
         ax3D.set_zlabel('Z')
         ax3D.set_aspect('equal')
-        X.plot3D(ax3D, 'k.')
+        X.plot3D(ax3D, 'k.', Pc)
 
         fig1.show()
         fig3.show()
         plt.waitforbuttonpress(0.01)
 
     # Get vector x0
-    X.toVector()
+    X.toVector(args)
     x0 = np.array(X.v, dtype=np.float)
+    # print len(x0)
+    # exit()
 
     import random
-    x_random = x0 * np.array([random.uniform(0.97, 1.03)
+    x_random = x0 * np.array([random.uniform(0.85, 1.15)
                               for _ in xrange(len(x0))], dtype=np.float)
     # x0 = x_random
 
@@ -308,6 +326,7 @@ if __name__ == "__main__":
     initial_residuals = costFunction(
         x0, dist, intrinsics, X, Pc, detections, args, handles, None)
 
+    handle_fun = None
     if args['d'] or args['do']:
         # Draw graph
         fig4 = plt.figure()
@@ -334,12 +353,12 @@ if __name__ == "__main__":
             camera = [camera for camera in X.cameras if camera.id ==
                       detection.camera[1:]][0]
 
-            idxs_camera = X.idxsFromCamera(camera.id)
+            idxs_camera = X.idxsFromCamera(camera.id, args)
 
             aruco = [aruco for aruco in X.arucos if aruco.id ==
                      detection.aruco[1:]][0]
 
-            idxs_aruco = X.idxsFromAruco(aruco.id)
+            idxs_aruco = X.idxsFromAruco(aruco.id, args)
 
             idxs = np.append(idxs_camera, idxs_aruco)
 
@@ -387,10 +406,10 @@ if __name__ == "__main__":
 
         print("\nOptimization took {0:.0f} seconds".format(t1 - t0))
 
-        X.fromVector(list(res.x))
+        X.fromVector(list(res.x), args)
 
         # if args['d'] or args['do']:
-        #     X.plot3D(ax3D, 'g*')
+        #     X.plot3D(ax3D, 'g*', Pc)
 
         #---------------------------------------
         #--- Present the results
@@ -408,5 +427,4 @@ if __name__ == "__main__":
         if args['d'] or args['do']:
             # fig5 = plt.figure()
             plt.plot(solution_residuals, 'r')
-
-    plt.waitforbuttonpress()
+            plt.waitforbuttonpress()

@@ -54,7 +54,7 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
     """
 
     # Updates the transformations from the cameras and the arucos to the map defined in the X class using the x optimized vector
-    X.fromVector(list(x))
+    X.fromVector(list(x), args)
 
     # Cost calculation
     cost = []
@@ -80,12 +80,21 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
 
         distanceFourPoints = 0
 
-        for i in range(len(xypix)):
+        if args['option1'] == 'corners':
+            for i in range(len(xypix)):
 
-            distance = ((detection.corner[0][i, 0] - xypix[i, 0]
-                         ) ** 2 + (detection.corner[0][i, 1] - xypix[i, 1])**2) ** (1/2.0)
+                distance = ((detection.corner[0][i, 0] - xypix[i, 0]
+                             ) ** 2 + (detection.corner[0][i, 1] - xypix[i, 1])**2) ** (1/2.0)
 
-            distanceFourPoints = distanceFourPoints + distance
+                distanceFourPoints = distanceFourPoints + distance
+        else:
+            xcm = (detection.corner[0][0, 0] + detection.corner[0][1, 0] +
+                   detection.corner[0][2, 0] + detection.corner[0][3, 0])/4
+            ycm = (detection.corner[0][0, 1] + detection.corner[0][1, 1] +
+                   detection.corner[0][2, 1] + detection.corner[0][3, 1])/4
+
+            distanceFourPoints = (
+                (xcm - xypix[0, 0]) ** 2 + (ycm - xypix[0, 1]) ** 2) ** (1/2.0)
 
         cost.append(distanceFourPoints)
 
@@ -98,7 +107,7 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
             # redraw text 2D
             handle.handle_text.set_position((xypix[0, 0], xypix[0, 1]))
 
-            X.setPlot3D()
+            X.setPlot3D(Pc)
 
     if args['do'] and costFunction.counter in multiples:
         if handle_fun:
