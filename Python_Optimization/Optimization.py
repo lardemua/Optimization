@@ -145,7 +145,7 @@ if __name__ == "__main__":
             ax = fig1.add_subplot(2, (K+1)/2, k+1)
             ax.imshow(cv2.cvtColor(raw, cv2.COLOR_BGR2RGB))
             ax.axis('off')
-            plt.title("camera " + str(k))
+            #plt.title("camera " + str(k))
 
             for corner in corners:
                 if args['option1'] == 'corners':
@@ -175,14 +175,17 @@ if __name__ == "__main__":
         fig2 = plt.figure()
 
     pos = nx.random_layout(GA)
+    pos = nx.spring_layout(GA)
+    pos = nx.kamada_kawai_layout(GA)
+
     colors = range(4)
     edges, weights = zip(*nx.get_edge_attributes(GA, 'weight').items())
 
     if args['d'] or args['do']:
-        edge_labels = nx.draw_networkx_edge_labels(GA, pos)
+        # edge_labels = nx.draw_networkx_edge_labels(GA, pos)
 
         nx.draw(GA, pos, node_color='#A0CBE2', edgelist=edges, edge_color=weights, width=6, edge_cmap=plt.cm.Greys_r,
-                with_labels=True, alpha=1, node_size=3500, font_color='k', edge_labels=edge_labels)
+                with_labels=True, alpha=1, node_size=3500, font_color='k')  # , edge_labels=edge_labels)
 
     print "----------------------------\n\n" + "Created Nodes:"
     print GA.nodes
@@ -193,7 +196,7 @@ if __name__ == "__main__":
     if not nx.is_connected(GA):
         exit()
 
-    map_node = 'A471'  # to be defined by hand
+    map_node = 'C0qq'  # to be defined by hand
 
     while not map_node in GA.nodes:
         # raise ValueError('Must define a map that exists in the graph. Should be one of ' + str(GA.nodes))
@@ -294,16 +297,16 @@ if __name__ == "__main__":
         fig3 = plt.figure()
         ax3D = fig3.add_subplot(111, projection='3d')
         plt.hold(True)
-        plt.title("3D projection of aruco markers")
-        ax3D.set_xlabel('X')
-        ax3D.set_ylabel('Y')
-        ax3D.set_zlabel('Z')
+        #plt.title("3D projection of aruco markers")
+        ax3D.set_xlabel('X (m)')
+        ax3D.set_ylabel('Y (m)')
+        ax3D.set_zlabel('Z (m)')
         ax3D.set_aspect('equal')
         X.plot3D(ax3D, 'k.', Pc)
 
         fig1.show()
         fig3.show()
-        plt.waitforbuttonpress(0.01)
+        plt.waitforbuttonpress(0)
 
     # Get vector x0
     X.toVector(args)
@@ -330,8 +333,14 @@ if __name__ == "__main__":
     if args['d'] or args['do']:
         # Draw graph
         fig4 = plt.figure()
-        plt.plot(initial_residuals, 'b')
-        handle_fun, = plt.plot(initial_residuals, 'r--')
+        axcost = fig4.add_subplot(111)
+        plt.plot(initial_residuals, 'b', label="Initial residuals")
+        handle_fun, = plt.plot(initial_residuals, 'r--',
+                               label="Final residuals")
+        plt.legend(loc='best')
+        axcost.set_xlabel('Detections')
+        axcost.set_ylabel('Cost')
+        # plt.xticks([])
 
     print("\n-> Initial cost = " + str(initial_residuals)) + "\n"
 
@@ -426,5 +435,5 @@ if __name__ == "__main__":
 
         if args['d'] or args['do']:
             # fig5 = plt.figure()
-            plt.plot(solution_residuals, 'r')
+            plt.plot(solution_residuals, 'r--')
             plt.waitforbuttonpress()
