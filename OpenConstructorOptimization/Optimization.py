@@ -197,6 +197,8 @@ if __name__ == "__main__":
     # Start the Aruco nodes graph and insert nodes (the images)
     GA = nx.Graph()
 
+    GA.add_edge('Map', 'C0', weight=1)
+
     for detection in detections:
         GA.add_edge(detection.aruco, detection.camera, weight=1)
 
@@ -228,7 +230,7 @@ if __name__ == "__main__":
     if not nx.is_connected(GA):
         exit()
 
-    map_node = 'C0'  # to be defined by hand
+    map_node = 'Map'  # to be defined by hand
 
     while not map_node in GA.nodes:
         # raise ValueError('Must define a map that exists in the graph. Should be one of ' + str(GA.nodes))
@@ -255,6 +257,11 @@ if __name__ == "__main__":
 
     X = MyX()
 
+    MapTC0 = np.array([[1, 0, 0, 0.5], [0, 1, 0, 0], [0, 0, 1, 0],
+                       [0, 0, 0, 1]], dtype=np.float)
+
+    MapTC0 = Tt
+
     # cycle all nodes in graph
     for node in GA.nodes:
 
@@ -265,28 +272,33 @@ if __name__ == "__main__":
         T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
                       [0, 0, 0, 1]], dtype=np.float)
 
-        T = Tt
-
         for i in range(1, len(path)):
             start = path[i-1]
             end = path[i]
             start_end = [start, end]
 
-            if start[0] == 'C':  # start is an aruco type node
-                is_camera = True
+            if start == 'Map':
+                Ti = inv(MapTC0)
+
+            elif end == 'Map':
+                Ti = MapTC0
+
             else:
-                is_camera = False
+                if start[0] == 'C':  # start is an aruco type node
+                    is_camera = True
+                else:
+                    is_camera = False
 
-            det = [
-                x for x in detections if x.aruco in start_end and x.camera in start_end][0]
+                det = [
+                    x for x in detections if x.aruco in start_end and x.camera in start_end][0]
 
-            print(det)
+                print(det)
 
-            Ti = det.getT()
+                Ti = det.getT()
 
-            if is_camera:  # Validated! When going from aruco to camera must invert the tranformation given by the aruco detection
-                print('Will invert...')
-                Ti = inv(Ti)
+                if is_camera:  # Validated! When going from aruco to camera must invert the tranformation given by the aruco detection
+                    print('Will invert...')
+                    Ti = inv(Ti)
 
             T = np.matmul(Ti, T)
 
@@ -295,10 +307,10 @@ if __name__ == "__main__":
         print("Transformation from " + node +
               " to " + map_node + " is: \n" + str(T))
 
-        if node[0] == 'C':  # node is a camera
+        if node[0] == 'C' or node == 'Map':  # node is a camera
             # derive rvec tvec from T
-            camera = MyCamera(T=T, id=node[1:])
-            X.cameras.append(camera)
+            # camera = MyCamera(T=T, id=node[1:])
+            # X.cameras.append(camera)
             kkkkkk = 0
         else:
             aruco = MyAruco(T=T, id=node[1:])
@@ -322,8 +334,8 @@ if __name__ == "__main__":
                 Tot[i-1][0:] = np.array(paramVect)
         Tt = Tot.transpose()
         # T cameras from OpenContructor
-        # camera = MyCamera(T=Tt, id=str(j))
-        # X.cameras.append(camera)
+        camera = MyCamera(T=Tt, id=str(j))
+        X.cameras.append(camera)
         # --------
         txtfile.close()
         print "Initial Extrinsic matrix of camera " + str(j) + "...\n"
@@ -368,6 +380,10 @@ if __name__ == "__main__":
                 if 0 < xypix[0][0] < 1920 and 0 < xypix[0][1] < 1080:
                     cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
                                5, (230, 250, 100), -1)
+                    cv2.ellipse(s[k].raw, (int(xypix[0][0]), int(
+                        xypix[0][1])), (20, 40), 0, 0, 180, 255, -1)
+            cv2.namedWindow('camera'+str(k), flags=cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('camera'+str(k), width=480, height=270)
             cv2.imshow('camera'+str(k), s[k].raw)
 
         # Draw projection 3D
@@ -560,7 +576,15 @@ if __name__ == "__main__":
                 k = int(camera.id)
 
                 # Draw intial projections
-                cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
-                           5, (255, 0, 0), -1)
+                if args['option1'] == 'corners':
+                    for i in range(4):
+                        if 0 < xypix[i][0] < 1920 and 0 < xypix[i][1] < 1080:
+                            cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
+                                       5, (230, 250, 100), -1)
+                else:
+                    if 0 < xypix[0][0] < 1920 and 0 < xypix[0][1] < 1080:
+                        cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
+                                   5, (230, 250, 100), -1)
+                cv2.imshow('camera'+str(k), s[k].raw)
 
             cv2.waitKey()
