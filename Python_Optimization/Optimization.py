@@ -213,7 +213,7 @@ if __name__ == "__main__":
 
     X = MyX()
 
-    MapTC0 = np.array([[1, 0, 0, 0.5], [0, 1, 0, 0], [0, 0, 1, 0],
+    MapTC0 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
                        [0, 0, 0, 1]], dtype=np.float)
 
     # cycle all nodes in graph

@@ -56,6 +56,7 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
 
     # Updates the transformations from the cameras and the arucos to the map defined in the X class using the x optimized vector
     X.fromVector(list(x), args)
+    width, height, _ = s[0].raw.shape
 
     # Cost calculation
     cost = []
@@ -105,11 +106,11 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
             k = int(camera.id)
             if args['option1'] == 'corners':
                 for i in range(4):
-                    if 0 < xypix[i][0] < 1920 and 0 < xypix[i][1] < 1080:
+                    if 0 < xypix[i][0] < height and 0 < xypix[i][1] < width:
                         cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
                                    5, (230, 250, 100), -1)
             else:
-                if 0 < xypix[0][0] < 1920 and 0 < xypix[0][1] < 1080:
+                if 0 < xypix[0][0] < height and 0 < xypix[0][1] < width:
                     cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
                                5, (230, 250, 100), -1)
             cv2.imshow('camera'+str(k), s[k].raw)

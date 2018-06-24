@@ -59,8 +59,15 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
 
     # ap.add_argument('--version', action='version', version='%(prog)s 2.0')
-    ap.add_argument('option1', choices=['center', 'corners'])
-    ap.add_argument('option2', choices=['all', 'translation'])
+    ap.add_argument('dir', metavar='Directory',
+                    type=str, help='Directory of the dataset to optimize')
+
+    ap.add_argument('option1', choices=[
+                    'center', 'corners'], help="Chose if is the centers or the corners of Arucos to do the otimization.")
+    ap.add_argument('option2', choices=[
+                    'all', 'translation'], help="Chose if use translation and rotation or only the translations in the vector x to otimize.")
+    ap.add_argument('option3', choices=[
+                    'fromaruco', 'fromfile'], help="Get initial estimation from the markers detection or from a file.")
 
     ap.add_argument("-d", action='store_true',
                     help="draw initial estimation", required=False)
@@ -75,45 +82,59 @@ if __name__ == "__main__":
     #--- Intitialization
     #---------------------------------------
 
-    Directory = '../CameraImages/Red_book_Aruco/dataset'
+    Directory = args['dir']
 
-    # Create new directory
-    dir_object = copy_dir(Directory)
-    paste_dir(dir_object, Directory[:30])
-    print "----------------------------\nNew path was created\n----------------------------"
-    # -------
+    if args['option3'] == 'fromfile':
+        # Create new directory
+        dir_object = copy_dir(Directory)
+        paste_dir(dir_object, Directory[:30])
+        print "----------------------------\nNew path was created\n----------------------------"
+        # -------
 
-    # Read all images (each image correspond to a camera)
-    filenames = sorted(
-        glob.glob((os.path.join(Directory, '*.jpg'))))
+        # Read all images (each image correspond to a camera)
+        filenames = sorted(
+            glob.glob((os.path.join(Directory, '*.jpg'))))
 
-    # Read data calibration camera (Dictionary elements -> "mtx", "dist")
-    parameters = []
-    text_file = open("CameraParameters/Mycalibration.txt", "r")
-    for value in text_file.read().split(', '):
-        value = value.replace("\n", "")
-        parameters.append(value)
-    parameters = np.array(parameters)
-    text_file.close()
+        # Read data calibration camera (Dictionary elements -> "mtx", "dist")
+        parameters = []
+        text_file = open("CameraParameters/Mycalibration.txt", "r")
+        for value in text_file.read().split(', '):
+            value = value.replace("\n", "")
+            parameters.append(value)
+        parameters = np.array(parameters)
+        text_file.close()
 
-    # Intrinsic matrix and distortion vector
-    mtx = np.zeros((3, 3))
-    mtx[0][0:3] = parameters[0:3]
-    mtx[1][0:3] = parameters[3:6]
-    mtx[2][0:3] = parameters[6:9]
-    intrinsics = np.zeros((3, 4))
-    intrinsics[:, :3] = mtx
-    dist = np.zeros((1, 5))
-    dist[:] = parameters[9:14]
+        # Intrinsic matrix and distortion vector
+        mtx = np.zeros((3, 3))
+        mtx[0][0:3] = parameters[0:3]
+        mtx[1][0:3] = parameters[3:6]
+        mtx[2][0:3] = parameters[6:9]
+        intrinsics = np.zeros((3, 4))
+        intrinsics[:, :3] = mtx
+        dist = np.zeros((1, 5))
+        dist[:] = parameters[9:14]
 
-    # Read data extrinsic calibration camera (OpenConstructor)
-    textfilenames = sorted(
-        glob.glob((os.path.join(Directory, '00*.txt'))))
+        # Read data extrinsic calibration camera (OpenConstructor)
+        textfilenames = sorted(
+            glob.glob((os.path.join(Directory, '00*.txt'))))
 
-    for w, cltx in enumerate(textfilenames):
-        nt = len(cltx)
-        if cltx[nt-6] == "-" or cltx[nt-7] == "-" or cltx[nt-8] == "-":
-            del textfilenames[w]
+        for w, cltx in enumerate(textfilenames):
+            nt = len(cltx)
+            if cltx[nt-6] == "-" or cltx[nt-7] == "-" or cltx[nt-8] == "-":
+                del textfilenames[w]
+    else:
+        # Read all images (each image correspond to a camera)
+        filenames = sorted(
+            glob.glob((os.path.join(Directory, '*.png'))))
+
+        # Read data calibration camera (Dictionary elements -> "mtx", "dist")
+        d = np.load("CameraParameters/cameraParameters.npy")
+
+        # Intrinsic matrix and distortion vector
+        mtx = d.item().get('mtx')
+        intrinsics = np.zeros((3, 4))
+        intrinsics[:, :3] = mtx
+        dist = d.item().get('dist')
 
     # Define aruco dictionary
     aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
@@ -168,7 +189,7 @@ if __name__ == "__main__":
 
         if args['d'] or args['do']:
             # drawing sttuff
-            size_square = 5
+            size_square = 7
             for corner in corners:
                 if args['option1'] == 'corners':
                     for ij in range(len(corner[0])):
@@ -177,7 +198,7 @@ if __name__ == "__main__":
                         x2 = int(corner[0][ij][0]+size_square)
                         y2 = int(corner[0][ij][1]+size_square)
                         cv2.rectangle(raw, (x1, y1), (x2, y2),
-                                      (0, 0, 255), 1)
+                                      (0, 0, 255), 2)
                 else:
                     xcm = (corner[0][0, 0] + corner[0][1, 0] +
                            corner[0][2, 0] + corner[0][3, 0])/4
@@ -187,8 +208,10 @@ if __name__ == "__main__":
                     y1 = int(ycm-size_square)
                     x2 = int(xcm+size_square)
                     y2 = int(ycm+size_square)
-                    cv2.rectangle(raw, (x1, y1), (x2, y2), (0, 0, 255), 1)
+                    cv2.rectangle(raw, (x1, y1), (x2, y2), (0, 0, 255), 2)
         k = k+1
+
+    width, height, _ = raw.shape
 
     #---------------------------------------
     #--- Initial guess for parameters (create x0).
@@ -243,24 +266,26 @@ if __name__ == "__main__":
     print "-> Map node is " + map_node
     print "-----------------------\n"
 
-    Tot = np.zeros((4, 4))
-    txtfile = open(textfilenames[0])
+    if args['option3'] == 'fromfile':
+        Tot = np.zeros((4, 4))
+        txtfile = open(textfilenames[0])
 
-    for i, line in enumerate(txtfile):
-        if 0 < i < 5:
-            paramVect = []
-            for param in line.strip().split(' '):
-                paramVect.append(param)
-            Tot[i-1][0:] = np.array(paramVect)
-    Tt = Tot.transpose()
-    txtfile.close()
+        for i, line in enumerate(txtfile):
+            if 0 < i < 5:
+                paramVect = []
+                for param in line.strip().split(' '):
+                    paramVect.append(param)
+                Tot[i-1][0:] = np.array(paramVect)
+        Tt = Tot.transpose()
+        txtfile.close()
 
     X = MyX()
 
-    MapTC0 = np.array([[1, 0, 0, 0.5], [0, 1, 0, 0], [0, 0, 1, 0],
+    MapTC0 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
                        [0, 0, 0, 1]], dtype=np.float)
 
-    MapTC0 = Tt
+    if args['option3'] == 'fromfile':
+        MapTC0 = Tt
 
     # cycle all nodes in graph
     for node in GA.nodes:
@@ -307,11 +332,12 @@ if __name__ == "__main__":
         print("Transformation from " + node +
               " to " + map_node + " is: \n" + str(T))
 
-        if node[0] == 'C' or node == 'Map':  # node is a camera
-            # derive rvec tvec from T
-            # camera = MyCamera(T=T, id=node[1:])
-            # X.cameras.append(camera)
-            kkkkkk = 0
+        if node[0] == 'C' and args['option3'] == 'fromaruco':  # node is a camera
+            camera = MyCamera(T=T, id=node[1:])
+            X.cameras.append(camera)
+        elif node == 'Map':
+            camera = MyCamera(T=T, id='Map')
+            X.cameras.append(camera)
         else:
             aruco = MyAruco(T=T, id=node[1:])
             X.arucos.append(aruco)
@@ -319,28 +345,30 @@ if __name__ == "__main__":
     #---------------------------------------
     #--- Get camera transformations by OpenConstructor.
     #---------------------------------------
-    print "\n" + "--------------------------------------------------------"
-    print "Get initial extrinsic parameters of the cameras...\n"
+    if args['option3'] == 'fromfile':
+        print "\n" + "--------------------------------------------------------"
+        print "Get initial extrinsic parameters of the cameras...\n"
 
-    for j, namefile in enumerate(textfilenames):
-        Tot = np.zeros((4, 4))
-        txtfile = open(namefile)
-        for i, line in enumerate(txtfile):
-            if 0 < i < 5:
-                paramVect = []
-                for param in line.strip().split(' '):
-                    paramVect.append(param)
+        for j, namefile in enumerate(textfilenames):
+            Tot = np.zeros((4, 4))
+            txtfile = open(namefile)
+            for i, line in enumerate(txtfile):
+                if 0 < i < 5:
+                    paramVect = []
+                    for param in line.strip().split(' '):
+                        paramVect.append(param)
 
-                Tot[i-1][0:] = np.array(paramVect)
-        Tt = Tot.transpose()
-        # T cameras from OpenContructor
-        camera = MyCamera(T=Tt, id=str(j))
-        X.cameras.append(camera)
-        # --------
-        txtfile.close()
-        print "Initial Extrinsic matrix of camera " + str(j) + "...\n"
-        print "T = \n" + str(Tt)
-        print "\n--------------------------------------------------------"
+                    Tot[i-1][0:] = np.array(paramVect)
+            Tt = Tot.transpose()
+
+            # T cameras from OpenContructor
+            camera = MyCamera(T=Tt, id=str(j))
+            X.cameras.append(camera)
+            # --------
+            txtfile.close()
+            print "Initial Extrinsic matrix of camera " + str(j) + "...\n"
+            print "T = \n" + str(Tt)
+            print "\n--------------------------------------------------------"
 
     #---------------------------------------
     #--- Draw Initial guess.
@@ -355,6 +383,7 @@ if __name__ == "__main__":
     handles = []
 
     if args['d'] or args['do']:
+        size_square = 5
         for detection in detections:
             camera = [camera for camera in X.cameras if camera.id ==
                       detection.camera[1:]][0]
@@ -373,15 +402,18 @@ if __name__ == "__main__":
             # Draw intial projections
             if args['option1'] == 'corners':
                 for i in range(4):
-                    if 0 < xypix[i][0] < 1920 and 0 < xypix[i][1] < 1080:
+                    if 0 < xypix[i][0] < height and 0 < xypix[i][1] < width:
                         cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
-                                   5, (230, 250, 100), -1)
+                                   5, (0, 128, 255), -1)
             else:
-                if 0 < xypix[0][0] < 1920 and 0 < xypix[0][1] < 1080:
-                    cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
-                               5, (230, 250, 100), -1)
-                    cv2.ellipse(s[k].raw, (int(xypix[0][0]), int(
-                        xypix[0][1])), (20, 40), 0, 0, 180, 255, -1)
+                if 0 < xypix[0][0] < height and 0 < xypix[0][1] < width:
+                    x1 = int(xypix[0][0]-size_square)
+                    y1 = int(xypix[0][1]-size_square)
+                    x2 = int(xypix[0][0]+size_square)
+                    y2 = int(xypix[0][1]+size_square)
+                    cv2.rectangle(s[k].raw, (x1, y1),
+                                  (x2, y2), (0, 128, 255), -1)
+
             cv2.namedWindow('camera'+str(k), flags=cv2.WINDOW_NORMAL)
             cv2.resizeWindow('camera'+str(k), width=480, height=270)
             cv2.imshow('camera'+str(k), s[k].raw)
@@ -400,7 +432,10 @@ if __name__ == "__main__":
 
         fig3.show()
         plt.waitforbuttonpress(0.1)
-    cv2.waitKey()
+
+        key = ord('w')
+        while key != ord('o'):
+            key = cv2.waitKey()
 
     # Get vector x0
     X.toVector(args)
@@ -435,7 +470,7 @@ if __name__ == "__main__":
         plt.legend(loc='best')
         axcost.set_xlabel('Detections')
         axcost.set_ylabel('Cost')
-        plt.ylim(ymin=-10)
+        plt.ylim(ymin=-1)
         plt.waitforbuttonpress(0.1)
         # plt.xticks([])
 
@@ -557,8 +592,9 @@ if __name__ == "__main__":
         #---------------------------------------
         if args['d'] or args['do']:
             # fig5 = plt.figure()
-            plt.plot(solution_residuals, 'r--')
-            # plt.waitforbuttonpress()
+            # plt.plot(solution_residuals, 'r--')
+            handle_fun.set_ydata(solution_residuals)
+            plt.waitforbuttonpress(0.1)
 
             for detection in detections:
                 camera = [camera for camera in X.cameras if camera.id ==
@@ -578,13 +614,14 @@ if __name__ == "__main__":
                 # Draw intial projections
                 if args['option1'] == 'corners':
                     for i in range(4):
-                        if 0 < xypix[i][0] < 1920 and 0 < xypix[i][1] < 1080:
+                        if 0 < xypix[i][0] < height and 0 < xypix[i][1] < width:
                             cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
-                                       5, (230, 250, 100), -1)
+                                       5, (0, 255, 255), -1)
                 else:
-                    if 0 < xypix[0][0] < 1920 and 0 < xypix[0][1] < 1080:
+                    if 0 < xypix[0][0] < height and 0 < xypix[0][1] < width:
                         cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
-                                   5, (230, 250, 100), -1)
+                                   5, (0, 255, 255), -1)
                 cv2.imshow('camera'+str(k), s[k].raw)
 
-            cv2.waitKey()
+            while key != ord('q'):
+                key = cv2.waitKey()
