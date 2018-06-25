@@ -100,22 +100,22 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
 
         cost.append(distanceFourPoints)
 
-        if args['do'] and costFunction.counter in multiples:
+        # if args['do'] and costFunction.counter in multiples:
 
-            # draw
-            k = int(camera.id)
-            if args['option1'] == 'corners':
-                for i in range(4):
-                    if 0 < xypix[i][0] < height and 0 < xypix[i][1] < width:
-                        cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
-                                   5, (230, 250, 100), -1)
-            else:
-                if 0 < xypix[0][0] < height and 0 < xypix[0][1] < width:
-                    cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
-                               5, (230, 250, 100), -1)
-            cv2.imshow('camera'+str(k), s[k].raw)
+        #     # draw
+        #     k = int(camera.id)
+        #     if args['option1'] == 'corners':
+        #         for i in range(4):
+        #             if 0 < xypix[i][0] < height and 0 < xypix[i][1] < width:
+        #                 cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
+        #                            5, (230, 250, 100), -1)
+        #     else:
+        #         if 0 < xypix[0][0] < height and 0 < xypix[0][1] < width:
+        #             cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
+        #                        5, (230, 250, 100), -1)
+        #     cv2.imshow('camera'+str(k), s[k].raw)
 
-            X.setPlot3D(Pc)
+        #     X.setPlot3D(Pc)
 
     if args['do'] and costFunction.counter in multiples:
         if handle_fun:

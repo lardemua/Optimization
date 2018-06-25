@@ -78,7 +78,15 @@ if __name__ == "__main__":
     ap.add_argument("-processDataset", action='store_true',
                     help="Process the point clouds with the results obtained from the optimization process", required=False)
 
+    ap.add_argument("-ms", metavar="marksize",
+                    help="size of the aruco markers (m)", required=False)
+
     args = vars(ap.parse_args())
+
+    if args['ms']:
+        marksize = float(args['ms'])
+    else:
+        marksize = 0.082
 
     #---------------------------------------
     #--- Intitialization
@@ -127,11 +135,12 @@ if __name__ == "__main__":
     else:
         # Read all images (each image correspond to a camera)
         filenames = sorted(
-            glob.glob((os.path.join(Directory, '*.png'))))
+            glob.glob((os.path.join(Directory, '*.jpg'))))
 
         # Read data calibration camera (Dictionary elements -> "mtx", "dist")
         d = np.load("CameraParameters/cameraParameters.npy")
 
+        # TODO intrinsics
         # Intrinsic matrix and distortion vector
         mtx = d.item().get('mtx')
         intrinsics = np.zeros((3, 4))
@@ -141,7 +150,6 @@ if __name__ == "__main__":
     # Define aruco dictionary
     aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
     parameters = aruco.DetectorParameters_create()
-    marksize = 0.082
 
     s = [stru() for i in range(len(filenames))]
 
