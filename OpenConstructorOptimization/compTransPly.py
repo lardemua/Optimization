@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-# pcl_ply2pcd 00000000.ply tmp.pcd && pcl_pcd2ply tmp.pcd 00000000a.ply
+# ----
+# Change the position of the points of the point cloud basing on a new transformation.
+
 import argparse
 import subprocess
 

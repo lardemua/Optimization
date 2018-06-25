@@ -75,6 +75,8 @@ if __name__ == "__main__":
                     help="do not optimize", required=False)
     ap.add_argument("-do", action='store_true',
                     help="to draw during optimization", required=False)
+    ap.add_argument("-processDataset", action='store_true',
+                    help="Process the point clouds with the results obtained from the optimization process", required=False)
 
     args = vars(ap.parse_args())
 
@@ -625,3 +627,22 @@ if __name__ == "__main__":
 
             while key != ord('q'):
                 key = cv2.waitKey()
+
+        if args['processDataset']:
+            import subprocess
+            ##
+            # @brief Executes the command in the shell in a blocking manner
+            #
+            # @param cmd a string with teh command to execute
+            #
+            # @return
+
+            def bash(cmd):
+                print "Executing command: " + cmd
+                p = subprocess.Popen(
+                    cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                for line in p.stdout.readlines():
+                    print line,
+                    p.wait()
+
+            bash('./processDataset.py ' + Directory)

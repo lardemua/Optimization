@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-# pcl_ply2pcd 00000000.ply tmp.pcd && pcl_pcd2ply tmp.pcd 00000000a.ply
+# ----
+# Compute the normals of the vertices of the point cloud.
+
 import argparse
 import subprocess
 
