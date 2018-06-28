@@ -27,6 +27,11 @@ import networkx as nx
 from numpy.linalg import inv
 from itertools import combinations
 
+from transformations import random_quaternion
+from transformations import quaternion_slerp
+from transformations import quaternion_from_matrix
+from transformations import quaternion_matrix
+
 #-------------------------------------------------------------------------------
 #--- DEFINITIONS
 #-------------------------------------------------------------------------------
@@ -94,7 +99,7 @@ if __name__ == "__main__":
 
     Directory = args['dir']
 
-    if args['option3'] == 'fromfile':
+    if True or args['option3'] == 'fromfile':
         # Create new directory
         dir_object = copy_dir(Directory)
         paste_dir(dir_object, Directory[:30])
@@ -156,8 +161,14 @@ if __name__ == "__main__":
     # Detect Aruco Markers
     detections = []
 
-    K = len(filenames)  # number of cameras
+    print(filenames)
+    # filenames = [x for x in filenames if x ==                 '../CameraImages/Aruco_Board_2/dataset/00000000.jpg']
+
+    # exit(0)
+
+    # K = len(filenames)  # number of cameras
     k = 0
+    # for filename in filenames[0:50:30]:
     for filename in filenames:
 
         # load image
@@ -224,6 +235,37 @@ if __name__ == "__main__":
     width, height, _ = raw.shape
 
     #---------------------------------------
+    #--- Get camera transformations by OpenConstructor.
+    #---------------------------------------
+
+    X = MyX()
+
+    if args['option3'] == 'fromfile':
+        print "\n" + "--------------------------------------------------------"
+        print "Get initial extrinsic parameters of the cameras...\n"
+
+        for j, namefile in enumerate(textfilenames):
+            Tot = np.zeros((4, 4))
+            txtfile = open(namefile)
+            for i, line in enumerate(txtfile):
+                if 0 < i < 5:
+                    paramVect = []
+                    for param in line.strip().split(' '):
+                        paramVect.append(param)
+
+                    Tot[i-1][0:] = np.array(paramVect)
+            Tt = Tot.transpose()
+
+            # T cameras from OpenContructor
+            camera = MyCamera(T=Tt, id=str(j))
+            X.cameras.append(camera)
+            # --------
+            txtfile.close()
+            print "Initial Extrinsic matrix of camera " + str(j) + "...\n"
+            print "T = \n" + str(Tt)
+            print "\n--------------------------------------------------------"
+
+    #---------------------------------------
     #--- Initial guess for parameters (create x0).
     #---------------------------------------
 
@@ -231,6 +273,10 @@ if __name__ == "__main__":
     GA = nx.Graph()
 
     GA.add_edge('Map', 'C0', weight=1)
+
+    if args['option3'] == 'fromfile':
+        for i in range(1, len(filenames)):
+            GA.add_edge('Map', 'C'+str(i), weight=1)
 
     for detection in detections:
         GA.add_edge(detection.aruco, detection.camera, weight=1)
@@ -276,69 +322,90 @@ if __name__ == "__main__":
     print "-> Map node is " + map_node
     print "-----------------------\n"
 
-    if args['option3'] == 'fromfile':
-        Tot = np.zeros((4, 4))
-        txtfile = open(textfilenames[0])
-
-        for i, line in enumerate(txtfile):
-            if 0 < i < 5:
-                paramVect = []
-                for param in line.strip().split(' '):
-                    paramVect.append(param)
-                Tot[i-1][0:] = np.array(paramVect)
-        Tt = Tot.transpose()
-        txtfile.close()
-
-    X = MyX()
-
-    MapTC0 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
-                       [0, 0, 0, 1]], dtype=np.float)
-
-    if args['option3'] == 'fromfile':
-        MapTC0 = Tt
-
     # cycle all nodes in graph
     for node in GA.nodes:
 
         print "--------------------------------------------------------"
         print('Solving for ' + node + "...")
-        path = nx.shortest_path(GA, node, map_node)
 
-        T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
-                      [0, 0, 0, 1]], dtype=np.float)
+        # path = nx.shortest_path(GA, node, map_node)
+        # print(path)
 
-        for i in range(1, len(path)):
-            start = path[i-1]
-            end = path[i]
-            start_end = [start, end]
+        # paths = list(nx.all_simple_paths(GA, node, map_node))
+        paths = list(nx.all_shortest_paths(GA, node, map_node))
+        if paths == []:
+            paths = [[node]]
 
-            if start == 'Map':
-                Ti = inv(MapTC0)
+        print(paths)
 
-            elif end == 'Map':
-                Ti = MapTC0
+        # import random
+        # path = random.choice(paths)
 
-            else:
-                if start[0] == 'C':  # start is an aruco type node
-                    is_camera = True
+        transformations_for_path = []
+
+        for path in paths:
+            T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [
+                          0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float)
+
+            for i in range(1, len(path)):
+                start = path[i-1]
+                end = path[i]
+                start_end = [start, end]
+
+                if start == 'Map':
+                    if args['option3'] == 'fromaruco':
+                        Ti = inv(np.identity(4))
+                    else:
+                        camera = [camera for camera in X.cameras if camera.id ==
+                                  end[1:]][0]
+                        Ti = inv(camera.getT())
+
+                elif end == 'Map':
+                    if args['option3'] == 'fromaruco':
+                        Ti = np.identity(4)
+                    else:
+                        camera = [camera for camera in X.cameras if camera.id ==
+                                  start[1:]][0]
+                        Ti = camera.getT()
+
                 else:
-                    is_camera = False
+                    if start[0] == 'C':  # start is an aruco type node
+                        is_camera = True
+                    else:
+                        is_camera = False
 
-                det = [
-                    x for x in detections if x.aruco in start_end and x.camera in start_end][0]
+                    det = [
+                        x for x in detections if x.aruco in start_end and x.camera in start_end][0]
 
-                print(det)
+                    print(det)
 
-                Ti = det.getT()
+                    Ti = det.getT()
 
-                if is_camera:  # Validated! When going from aruco to camera must invert the tranformation given by the aruco detection
-                    print('Will invert...')
-                    Ti = inv(Ti)
+                    if is_camera:  # Validated! When going from aruco to camera must invert the tranformation given by the aruco detection
+                        print('Will invert...')
+                        Ti = inv(Ti)
 
-            T = np.matmul(Ti, T)
+                T = np.matmul(Ti, T)
 
-            # print("Ti = \n" + str(Ti))
-            # print("T = \n" + str(T))
+                # print("Ti = \n" + str(Ti))
+                # print("T = \n" + str(T))
+
+            q = quaternion_from_matrix(T, isprecise=False)
+            t = (tuple(T[0:3, 3]), tuple(q))
+            # print t
+            # exit()
+            transformations_for_path.append(t)
+
+        qm = averageTransforms(transformations_for_path)
+        # print qm
+
+        T = quaternion_matrix(qm[1])
+        T[0, 3] = qm[0][0]
+        T[1, 3] = qm[0][1]
+        T[2, 3] = qm[0][2]
+        # print T
+        # exit()
+
         print("Transformation from " + node +
               " to " + map_node + " is: \n" + str(T))
 
@@ -351,34 +418,6 @@ if __name__ == "__main__":
         else:
             aruco = MyAruco(T=T, id=node[1:])
             X.arucos.append(aruco)
-
-    #---------------------------------------
-    #--- Get camera transformations by OpenConstructor.
-    #---------------------------------------
-    if args['option3'] == 'fromfile':
-        print "\n" + "--------------------------------------------------------"
-        print "Get initial extrinsic parameters of the cameras...\n"
-
-        for j, namefile in enumerate(textfilenames):
-            Tot = np.zeros((4, 4))
-            txtfile = open(namefile)
-            for i, line in enumerate(txtfile):
-                if 0 < i < 5:
-                    paramVect = []
-                    for param in line.strip().split(' '):
-                        paramVect.append(param)
-
-                    Tot[i-1][0:] = np.array(paramVect)
-            Tt = Tot.transpose()
-
-            # T cameras from OpenContructor
-            camera = MyCamera(T=Tt, id=str(j))
-            X.cameras.append(camera)
-            # --------
-            txtfile.close()
-            print "Initial Extrinsic matrix of camera " + str(j) + "...\n"
-            print "T = \n" + str(Tt)
-            print "\n--------------------------------------------------------"
 
     #---------------------------------------
     #--- Draw Initial guess.
@@ -396,10 +435,10 @@ if __name__ == "__main__":
         size_square = 5
         for detection in detections:
             camera = [camera for camera in X.cameras if camera.id ==
-                      detection.camera[1:]][0]
+                      detection.camera[1:]][0]  # fetch the camera for this detection
 
             aruco = [aruco for aruco in X.arucos if aruco.id ==
-                     detection.aruco[1:]][0]
+                     detection.aruco[1:]][0]  # fetch the aruco for this detection
 
             Ta = aruco.getT()
             Tc = camera.getT()
@@ -529,6 +568,29 @@ if __name__ == "__main__":
         #---------------------------------------
         #--- Set the bounds for the parameters
         #---------------------------------------
+
+        # bounds : 2-tuple of array_like, optional
+        # Lower and upper bounds on independent variables. Defaults to no bounds. Each array must match the size of x0 or be a scalar, in the latter case a bound will be the same for all variables. Use np.inf with an appropriate sign to disable bounds on all or some variables.
+        # camera_params = params[:n_cameras * 9].reshape((n_cameras, 9))
+        # points_3d = params[n_cameras * 9:].reshape((n_points, 3))
+
+        # Bmin = []
+        # Bmax = []
+        # for i in range(0, len(views)):
+        #     for i in range(0, 6):
+        #         Bmin.append(-np.inf)
+        #         Bmax.append(np.inf)
+
+        # delta = 0.1
+        # for i in range(len(views) * 6, len(x0)):
+        #     Bmin.append(x0[i] - delta)
+        #     Bmax.append(x0[i] + delta)
+
+        # # for i in range(len(x0)-4, len(x0)):
+        #     # Bmin.append(-np.inf)
+        #     # Bmax.append(np.inf)
+
+        # bounds = (Bmin, Bmax)
 
         #---------------------------------------
         #--- Optimization (minimization)

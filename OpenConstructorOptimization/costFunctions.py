@@ -4,9 +4,54 @@ import matplotlib.pyplot as plt
 import random
 import cv2
 
+from transformations import random_quaternion
+from transformations import quaternion_slerp
+
 #-------------------------------------------------------------------------------
 #--- FUNCTION DEFINITION
 #-------------------------------------------------------------------------------
+
+
+##
+# @brief Averages a list of transformations
+#
+# @param lT a list of transforms, each defined by a tuple ( (tx, ty, tz), (qw, qx, qy, qz) )
+#
+# @return the averaged transform, a tuple ( (tx,ty,tz), (qw, qx, qy, qz) )
+def averageTransforms(l_transforms):
+    N = len(l_transforms)
+    print("Computing the average of " + str(N) + " transforms")
+
+    # Get a list of all the translations l_t
+    l_t = [i[0] for i in l_transforms]
+    # print(l_t)
+
+    # compute the average translation
+    tmp1 = sum(v[0] for v in l_t) / N
+    tmp2 = sum(v[1] for v in l_t) / N
+    tmp3 = sum(v[2] for v in l_t) / N
+    avg_t = (tmp1, tmp2, tmp3)
+    # print(avg_t)
+
+    # Get a list of the rotation quaternions
+    l_q = [i[1] for i in l_transforms]
+    #print l_q
+
+    # Average the quaterions using an incremental slerp approach
+    acc = 1.0  # accumulator, counts the number of observations inserted already
+    avg_q = random_quaternion()  # can be random for start, since it will not be used
+    for q in l_q:
+        # How to deduce the ratio on each iteration
+        # w_q = 1 / (acc + 1)
+        # w_qavg = acc  / (acc + 1)
+        # ratio = w_q / w_qavg <=> 1 / acc
+        avg_q = quaternion_slerp(avg_q, q, 1.0/acc)  # run pairwise slerp
+        acc = acc + 1  # increment acc
+
+    avg_q = tuple(avg_q)
+    # print(avg_q)
+
+    return (avg_t, avg_q)
 
 
 def points2imageFromT(T, K, P, dist):
