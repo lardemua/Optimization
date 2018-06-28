@@ -80,6 +80,8 @@ if __name__ == "__main__":
                     help="do not optimize", required=False)
     ap.add_argument("-do", action='store_true',
                     help="to draw during optimization", required=False)
+    ap.add_argument("-saveResults", action='store_true',
+                    help="Save results of the optimization", required=False)
     ap.add_argument("-processDataset", action='store_true',
                     help="Process the point clouds with the results obtained from the optimization process", required=False)
 
@@ -100,11 +102,13 @@ if __name__ == "__main__":
     Directory = args['dir']
 
     if True or args['option3'] == 'fromfile':
-        # Create new directory
-        dir_object = copy_dir(Directory)
-        paste_dir(dir_object, Directory[:30])
-        print "----------------------------\nNew path was created\n----------------------------"
-        # -------
+
+        if args['saveResults']:
+            # Create new directory
+            dir_object = copy_dir(Directory)
+            paste_dir(dir_object, Directory[:30])
+            print "----------------------------\nNew path was created\n----------------------------"
+            # -------
 
         # Read all images (each image correspond to a camera)
         filenames = sorted(
@@ -636,28 +640,29 @@ if __name__ == "__main__":
         #---------------------------------------
         #--- Save results
         #---------------------------------------
-        newDirectory = Directory + 'Optimized'
-        textfilenames = sorted(
-            glob.glob((os.path.join(newDirectory, '00*.txt'))))
-        for w, cltx in enumerate(textfilenames):
-            nt = len(cltx)
-            if cltx[nt-6] == "-" or cltx[nt-7] == "-" or cltx[nt-8] == "-":
-                del textfilenames[w]
+        if args['saveResults']:
+            newDirectory = Directory + 'Optimized'
+            textfilenames = sorted(
+                glob.glob((os.path.join(newDirectory, '00*.txt'))))
+            for w, cltx in enumerate(textfilenames):
+                nt = len(cltx)
+                if cltx[nt-6] == "-" or cltx[nt-7] == "-" or cltx[nt-8] == "-":
+                    del textfilenames[w]
 
-        for j, namefile in enumerate(textfilenames):
+            for j, namefile in enumerate(textfilenames):
 
-            camera = [camera for camera in X.cameras if camera.id ==
-                      str(j)][0]
-            T = camera.getT()
-            Tp = T.transpose()
+                camera = [camera for camera in X.cameras if camera.id ==
+                          str(j)][0]
+                T = camera.getT()
+                Tp = T.transpose()
 
-            lines = open(namefile).read().splitlines()
-            for i in range(4):
-                lines[i+1] = str(Tp[i][0]) + ' ' + str(Tp[i][1]) + ' ' + \
-                    str(Tp[i][2]) + ' ' + str(Tp[i][3])
+                lines = open(namefile).read().splitlines()
+                for i in range(4):
+                    lines[i+1] = str(Tp[i][0]) + ' ' + str(Tp[i][1]) + ' ' + \
+                        str(Tp[i][2]) + ' ' + str(Tp[i][3])
 
-            open(namefile, 'w').write('\n'.join(lines))
-            print "Save T optimized for camera " + str(j) + "..."
+                open(namefile, 'w').write('\n'.join(lines))
+                print "Save T optimized for camera " + str(j) + "..."
 
         #---------------------------------------
         #--- Draw final results
@@ -698,7 +703,7 @@ if __name__ == "__main__":
             while key != ord('q'):
                 key = cv2.waitKey()
 
-        if args['processDataset']:
+        if args['processDataset'] and args['saveResults']:
             import subprocess
             ##
             # @brief Executes the command in the shell in a blocking manner
