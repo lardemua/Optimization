@@ -126,9 +126,6 @@ if __name__ == "__main__":
 
     newDirectory = os.path.dirname(Directory) + "/dataset_optimized"
 
-    print Directory
-    print newDirectory
-
     if True or args['option3'] == 'fromfile':
 
         if args['saveResults']:
@@ -140,7 +137,6 @@ if __name__ == "__main__":
             # dir_object = copy_dir(Directory)
             # paste_dir(dir_object, Directory[:30])
             print "----------------------------\nNew path was created\n----------------------------"
-            exit(0)
             # -------
 
         # Read all images (each image correspond to a camera)
