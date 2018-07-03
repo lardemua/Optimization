@@ -230,7 +230,7 @@ def copy_dir(path):
     from os import listdir
     from os.path import basename, isdir, isfile, join
     assert isdir(path)
-    dir = (basename(path) + "Optimized", list())
+    dir = (basename(path) + "dataset_optimized", list())
     for name in listdir(path):
         next_path = join(path, name)
         if isdir(next_path):
