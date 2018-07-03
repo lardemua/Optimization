@@ -32,6 +32,9 @@ from transformations import quaternion_slerp
 from transformations import quaternion_from_matrix
 from transformations import quaternion_matrix
 
+from os.path import basename
+import subprocess
+
 #-------------------------------------------------------------------------------
 #--- DEFINITIONS
 #-------------------------------------------------------------------------------
@@ -50,6 +53,26 @@ __version__ = "3.0"
 __maintainer__ = "Filipe Costa"
 __email__ = "costa.filipe@ua.pt"
 __status__ = "Development"
+
+#-------------------------------------------------------------------------------
+#--- MY FUNCTIONS
+#-------------------------------------------------------------------------------
+
+##
+# @brief Executes the command in the shell in a blocking manner
+#
+# @param cmd a string with teh command to execute
+#
+# @return
+
+
+def bash(cmd):
+    print "Executing command: " + cmd
+    p = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in p.stdout.readlines():
+        print line,
+        p.wait()
 
 
 #-------------------------------------------------------------------------------
@@ -101,13 +124,23 @@ if __name__ == "__main__":
 
     Directory = args['dir']
 
+    newDirectory = os.path.dirname(Directory) + "/dataset_optimized"
+
+    print Directory
+    print newDirectory
+
     if True or args['option3'] == 'fromfile':
 
         if args['saveResults']:
             # Create new directory
-            dir_object = copy_dir(Directory)
-            paste_dir(dir_object, Directory[:30])
+            if not os.path.exists(newDirectory):
+                os.makedirs(newDirectory)
+
+            bash('cp ' + Directory + '/* ' + newDirectory + '/')
+            # dir_object = copy_dir(Directory)
+            # paste_dir(dir_object, Directory[:30])
             print "----------------------------\nNew path was created\n----------------------------"
+            exit(0)
             # -------
 
         # Read all images (each image correspond to a camera)
@@ -660,7 +693,8 @@ if __name__ == "__main__":
         #--- Save results
         #---------------------------------------
         if args['saveResults']:
-            newDirectory = Directory + 'Optimized'
+            print "saving results..."
+
             textfilenames = sorted(
                 glob.glob((os.path.join(newDirectory, '00*.txt'))))
             for w, cltx in enumerate(textfilenames):
@@ -723,20 +757,5 @@ if __name__ == "__main__":
                 key = cv2.waitKey()
 
         if args['processDataset'] and args['saveResults']:
-            import subprocess
-            ##
-            # @brief Executes the command in the shell in a blocking manner
-            #
-            # @param cmd a string with teh command to execute
-            #
-            # @return
-
-            def bash(cmd):
-                print "Executing command: " + cmd
-                p = subprocess.Popen(
-                    cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-                for line in p.stdout.readlines():
-                    print line,
-                    p.wait()
 
             bash('./processDataset.py ' + Directory)
