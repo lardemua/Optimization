@@ -46,7 +46,7 @@ __date__ = "Abril 2018"
 __copyright__ = "Copyright 2015, V3V"
 __credits__ = ["Filipe Oliveira Costa"]
 __license__ = "GPL"
-__version__ = "1.0"
+__version__ = "3.0"
 __maintainer__ = "Filipe Costa"
 __email__ = "costa.filipe@ua.pt"
 __status__ = "Development"
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # Detect Aruco Markers
     detections = []
 
-    print(filenames)
+    # print(filenames)
     # filenames = [x for x in filenames if x ==                 '../CameraImages/Aruco_Board_2/dataset/00000000.jpg']
 
     # exit(0)
@@ -188,8 +188,8 @@ if __name__ == "__main__":
 
         if not ids is None:
             if len(ids) > 0:
-                print "----------------------------"
-                print("> Camera " + str(k))
+                # print "----------------------------"
+                # print("> Camera " + str(k))
 
                 # Estimate pose of each marker
                 rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(
@@ -200,8 +200,8 @@ if __name__ == "__main__":
                     detection = MyDetection(
                         rvec[0], tvec[0], 'C' + str(k), 'A' + str(idd[0]), corner)
 
-                    print(detection)
-                    print(detection.printValues())
+                    # print(detection)
+                    # print(detection.printValues())
                     detections.append(detection)
 
                     if args['d'] or args['do']:
@@ -327,20 +327,38 @@ if __name__ == "__main__":
     print "-----------------------\n"
 
     # cycle all nodes in graph
-    for node in GA.nodes:
+    for node in tqdm(GA.nodes):
 
-        print "--------------------------------------------------------"
-        print('Solving for ' + node + "...")
+        # print "--------------------------------------------------------"
+        # print('Solving for ' + node + "...")
 
         # path = nx.shortest_path(GA, node, map_node)
         # print(path)
 
-        # paths = list(nx.all_simple_paths(GA, node, map_node))
-        paths = list(nx.all_shortest_paths(GA, node, map_node))
+        paths_shortest = list(nx.all_shortest_paths(GA, node, map_node))
+        shortest_path_lenght = len(paths_shortest[0])
+        paths = paths_shortest
+
+        # if len(paths_shortest) < 4:  # if small number of shortes paths compute some more
+        #     paths_simple = list(nx.all_simple_paths(
+        #         GA, node, map_node, cutoff=shortest_path_lenght+2))
+        #     paths.extend(paths_simple)
+
+        #     paths = [list(x) for x in set(tuple(x) for x in paths)]
+
         if paths == []:
             paths = [[node]]
 
-        print(paths)
+        # for testing keep only the first element
+        # paths = [paths[0]]
+        # [[ 0.99928637  0.00437887  0.03751761  0.19445132]
+        #  [-0.00443158  0.99998931  0.00132196 -0.0940675 ]
+        #  [-0.03751142 -0.00148728  0.99929509 -0.66690812]
+        #  [ 0.          0.          0.          1.        ]]
+
+        # print(paths)
+
+        # exit()
 
         # import random
         # path = random.choice(paths)
@@ -381,12 +399,12 @@ if __name__ == "__main__":
                     det = [
                         x for x in detections if x.aruco in start_end and x.camera in start_end][0]
 
-                    print(det)
+                    # print(det)
 
                     Ti = det.getT()
 
                     if is_camera:  # Validated! When going from aruco to camera must invert the tranformation given by the aruco detection
-                        print('Will invert...')
+                        # print('Will invert...')
                         Ti = inv(Ti)
 
                 T = np.matmul(Ti, T)
@@ -410,8 +428,8 @@ if __name__ == "__main__":
         # print T
         # exit()
 
-        print("Transformation from " + node +
-              " to " + map_node + " is: \n" + str(T))
+        # print("Transformation from " + node +
+        #       " to " + map_node + " is: \n" + str(T))
 
         if node[0] == 'C' and args['option3'] == 'fromaruco':  # node is a camera
             camera = MyCamera(T=T, id=node[1:])
@@ -488,7 +506,8 @@ if __name__ == "__main__":
 
         key = ord('w')
         while key != ord('o'):
-            key = cv2.waitKey()
+            key = cv2.waitKey(20)
+            plt.waitforbuttonpress(0.01)
 
     # Get vector x0
     X.toVector(args)

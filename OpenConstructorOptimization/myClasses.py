@@ -137,6 +137,10 @@ class MyX:
                 wp[i, :] = rot.dot(p) + trans
                 i = i + 1
 
+            # if aruco.id == '30':
+            #     print T
+                # exit()
+
             # Draw aruco axis
             handle_plotx, = ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [
                 Ptransf[0][1], Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')

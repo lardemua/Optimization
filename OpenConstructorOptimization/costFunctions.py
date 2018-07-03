@@ -145,6 +145,10 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
 
         cost.append(distanceFourPoints)
 
+        # if np.isnan(distanceFourPoints):
+        #     print "xcm = " + str(xcm)
+        #     print "ycm = " + str(ycm)
+
         # if args['do'] and costFunction.counter in multiples:
 
         #     # draw
