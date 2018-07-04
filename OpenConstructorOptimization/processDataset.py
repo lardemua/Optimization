@@ -43,7 +43,7 @@ args = vars(ap.parse_args())
 
 # Work directory
 Directory = args['directory']
-DirectoryOptimized = Directory + 'Optimized'
+DirectoryOptimized = os.path.dirname(Directory) + "/dataset_optimized"
 
 Transformations = []
 TransformationsOptimized = []

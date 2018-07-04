@@ -174,92 +174,18 @@ def costFunction(x, dist, intrinsics, X, Pc, detections, args, handles, handle_f
 
     return cost
 
-#-------------------------------------------------------------------------------
-#--- OTHER FUNCTION DEFINITION
-#-------------------------------------------------------------------------------
 
+def computeError(realPts, compPts):
+    """Compute the ground truth
+    """
 
-'''cap_module.py
+    Error = 0
 
-The purpose of this module
-is to provide functions
-for copying and pasting
-directories and files.
+    for realPt in realPts:
+        compPt = [compPt for compPt in compPts if compPt.id ==
+                  realPt.id][0]
 
-This is a level 1 module.'''
+        Error = Error + ((compPt.x - realPt.x) +
+                         (compPt.y - realPt.y) + (compPt.z - realPt.z))
 
-#=========================
-# Level 1 Functions: Files
-#=========================
-
-
-def copy_file(path):
-    '''copy_file(string)
-
-    Import the needed functions.
-    Assert that the path is a file.
-    Return all file data.'''
-    from os.path import basename, isfile
-    assert isfile(path)
-    return (basename(path), file(path, 'rb', 0).read())
-
-
-def paste_file(file_object, path):
-    '''paste_file(tuple, string)
-
-    Import needed functions.
-    Assert that the path is a directory.
-    Create all file data.'''
-    from os.path import isdir, join
-    assert isdir(path)
-    file(join(path, file_object[0]), 'wb', 0).write(file_object[1])
-
-#===============================
-# Level 2 Functions: Directories
-#===============================
-
-
-def copy_dir(path):
-    '''copy_dir(string)
-
-    Import needed functions.
-    Assert that path is a directory.
-    Setup a storage area.
-    Write all data to the storage area.
-    Return the storage area.'''
-    from os import listdir
-    from os.path import basename, isdir, isfile, join
-    assert isdir(path)
-    dir = (basename(path) + "dataset_optimized", list())
-    for name in listdir(path):
-        next_path = join(path, name)
-        if isdir(next_path):
-            dir[1].append(copy_dir(next_path))
-        elif isfile(next_path):
-            dir[1].append(copy_file(next_path))
-    return dir
-
-
-def paste_dir(dir_object, path):
-    '''paste_dir(tuple, string)
-
-    Import needed functions.
-    Assert that the path is a directory.
-    Edit the path and create a directory as needed.
-    Create all directories and files as needed.'''
-    from os import mkdir
-    from os.path import isdir, join, exists
-    from shutil import rmtree
-
-    if exists(path + '/' + dir_object[0]):
-        rmtree(path + '/' + dir_object[0])
-
-    assert isdir(path)
-    if dir_object[0] is not '':
-        path = join(path, dir_object[0])
-        mkdir(path)
-    for object in dir_object[1]:
-        if type(object[1]) is list:
-            paste_dir(object, path)
-        else:
-            paste_file(object, path)
+    return Error

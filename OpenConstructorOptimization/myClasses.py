@@ -22,6 +22,15 @@ class MyRodrigues:
         self.r3 = None
 
 
+class Point3DtoComputeError(MyPoint3D):
+    def __init__(self, x, y, z, id):
+        MyPoint3D.__init__(self)
+        self.x = x
+        self.y = y
+        self.z = z
+        self.id = id
+
+
 class MyHandle:
     def __init__(self, handle_scatter, handle_text):
         self.handle_scatter = handle_scatter
@@ -114,6 +123,8 @@ class MyX:
         self.v = []
         self.ArucoHandles = []
         self.CameraHandles = []
+        self.InitPts = []
+        self.OptPts = []
 
     def plot3D(self, ax3D, symbol, Pc):
 
@@ -137,10 +148,6 @@ class MyX:
                 wp[i, :] = rot.dot(p) + trans
                 i = i + 1
 
-            # if aruco.id == '30':
-            #     print T
-                # exit()
-
             # Draw aruco axis
             handle_plotx, = ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [
                 Ptransf[0][1], Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')
@@ -161,6 +168,14 @@ class MyX:
 
             # Draw aruco point 3D
             wp = wp.transpose()
+
+            # print 'Aruco ' + aruco.id + ':' + '\n       x -> ' + \
+            #     str(wp[0, 0]) + '\n       y -> ' + \
+            #     str(wp[1, 0]) + '\n       z -> ' + str(wp[2, 0])
+
+            Pta = Point3DtoComputeError(wp[0, 0], wp[1, 0], wp[2, 0], aruco.id)
+            self.InitPts.append(Pta)
+
             handle_scatter = ax3D.scatter(wp[0, :], wp[1, :], wp[2, :], symbol)
 
             handle = MyHandle3D(handle_scatter, handle_plotx, handle_ploty, handle_plotz,
@@ -210,6 +225,7 @@ class MyX:
         # Referential of arucos
         s = 0.150
         P = np.array([[0, 0, 0], [s, 0, 0], [0, s, 0], [0, 0, s]])
+        self.OptPts = []
 
         for aruco, handle in zip(self.arucos, self.ArucoHandles):
 
@@ -264,6 +280,14 @@ class MyX:
 
             # Draw aruco point 3D
             wp = wp.transpose()
+
+            # print 'Aruco ' + aruco.id + ':' + '\n       x -> ' + \
+            #     str(wp[0, 0]) + '\n       y -> ' + \
+            #     str(wp[1, 0]) + '\n       z -> ' + str(wp[2, 0])
+
+            Pta = Point3DtoComputeError(wp[0, 0], wp[1, 0], wp[2, 0], aruco.id)
+            self.OptPts.append(Pta)
+
             # redraw scatter
             handle.handle_scatter._offsets3d = (wp[0, :], wp[1, :], wp[2, :])
 

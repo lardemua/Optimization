@@ -342,7 +342,7 @@ if __name__ == "__main__":
     if not nx.is_connected(GA):
         exit()
 
-    map_node = 'Map'  # to be defined by hand
+    map_node = 'A0'  # to be defined by hand
 
     while not map_node in GA.nodes:
         # raise ValueError('Must define a map that exists in the graph. Should be one of ' + str(GA.nodes))
@@ -378,19 +378,7 @@ if __name__ == "__main__":
         if paths == []:
             paths = [[node]]
 
-        # for testing keep only the first element
-        # paths = [paths[0]]
-        # [[ 0.99928637  0.00437887  0.03751761  0.19445132]
-        #  [-0.00443158  0.99998931  0.00132196 -0.0940675 ]
-        #  [-0.03751142 -0.00148728  0.99929509 -0.66690812]
-        #  [ 0.          0.          0.          1.        ]]
-
         # print(paths)
-
-        # exit()
-
-        # import random
-        # path = random.choice(paths)
 
         transformations_for_path = []
 
@@ -548,6 +536,22 @@ if __name__ == "__main__":
     x_random = x0 * np.array([random.uniform(0.85, 1.15)
                               for _ in xrange(len(x0))], dtype=np.float)
     # x0 = x_random
+
+    #---------------------------------------
+    #--- Compute ground truth of initial estimate
+    #---------------------------------------
+
+    RealPts = []
+    Aid = 0
+    factor = marksize + 0.02
+
+    for y in range(6):
+        yi = y * factor
+        for x in range(9):
+            xi = x * factor
+            Pt = Point3DtoComputeError(xi, yi, 0, str(Aid))
+            RealPts.append(Pt)
+            Aid = Aid + 1
 
     #---------------------------------------
     #--- Test call of objective function
@@ -749,9 +753,23 @@ if __name__ == "__main__":
                                    5, (0, 255, 255), -1)
                 cv2.imshow('camera'+str(k), s[k].raw)
 
+            X.setPlot3D(Pc)
+
+            Error = computeError(RealPts, X.InitPts)
+
+            print '\nInitial Error = ' + str(Error)
+
+            Error = computeError(RealPts, X.OptPts)
+
+            print '\nFinal Error = ' + str(Error) + '\n'
+
             while key != ord('q'):
-                key = cv2.waitKey()
+                key = cv2.waitKey(20)
+                plt.waitforbuttonpress(0.01)
+
+        #---------------------------------------
+        #--- Process dataset
+        #---------------------------------------
 
         if args['processDataset'] and args['saveResults']:
-
             bash('./processDataset.py ' + Directory)
