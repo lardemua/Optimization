@@ -546,7 +546,7 @@ if __name__ == "__main__":
     factor = marksize + 0.02
 
     for y in range(6):
-        yi = y * factor
+        yi = -(y * factor)
         for x in range(9):
             xi = x * factor
             Pt = Point3DtoComputeError(xi, yi, 0, str(Aid))
@@ -757,11 +757,11 @@ if __name__ == "__main__":
 
             Error = computeError(RealPts, X.InitPts)
 
-            print '\nInitial Error = ' + str(Error)
+            print '\nAverage Error of initial estimation = ' + str(Error)
 
             Error = computeError(RealPts, X.OptPts)
 
-            print '\nFinal Error = ' + str(Error) + '\n'
+            print '\nAverage Error after optimization = ' + str(Error) + '\n'
 
             while key != ord('q'):
                 key = cv2.waitKey(20)
