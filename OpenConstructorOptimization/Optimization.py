@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     newDirectory = os.path.dirname(Directory) + "/dataset_optimized"
 
-    if True or args['option3'] == 'fromfile':
+    if args['option3'] == 'fromfile' or marksize == 0.1:
 
         if args['saveResults']:
             # Create new directory
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     else:
         # Read all images (each image correspond to a camera)
         filenames = sorted(
-            glob.glob((os.path.join(Directory, '*.jpg'))))
+            glob.glob((os.path.join(Directory, '*.png'))))
 
         # Read data calibration camera (Dictionary elements -> "mtx", "dist")
         d = np.load("CameraParameters/cameraParameters.npy")
@@ -237,13 +237,13 @@ if __name__ == "__main__":
                         aruco.drawAxis(raw, mtx, dist, rvec,
                                        tvec, 0.05)  # Draw Axis
                         cv2.putText(raw, "Id:" + str(idd[0]), (corner[0][0, 0],
-                                                               corner[0][0, 1]), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                                                               corner[0][0, 1]), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
 
                 raw = aruco.drawDetectedMarkers(raw, corners)
 
         if args['d'] or args['do']:
             # drawing sttuff
-            size_square = 7
+            size_square = 12
             for corner in corners:
                 if args['option1'] == 'corners':
                     for ij in range(len(corner[0])):
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     if not nx.is_connected(GA):
         exit()
 
-    map_node = 'A0'  # to be defined by hand
+    map_node = 'C0'  # to be defined by hand
 
     while not map_node in GA.nodes:
         # raise ValueError('Must define a map that exists in the graph. Should be one of ' + str(GA.nodes))
@@ -452,8 +452,9 @@ if __name__ == "__main__":
             camera = MyCamera(T=T, id=node[1:])
             X.cameras.append(camera)
         elif node == 'Map':
-            camera = MyCamera(T=T, id='Map')
-            X.cameras.append(camera)
+            pilas = 0
+            # camera = MyCamera(T=T, id='Map')
+            # X.cameras.append(camera)
         else:
             aruco = MyAruco(T=T, id=node[1:])
             X.arucos.append(aruco)
@@ -471,7 +472,7 @@ if __name__ == "__main__":
     handles = []
 
     if args['d'] or args['do']:
-        size_square = 5
+        size_square = 8
         for detection in detections:
             camera = [camera for camera in X.cameras if camera.id ==
                       detection.camera[1:]][0]  # fetch the camera for this detection
@@ -491,8 +492,14 @@ if __name__ == "__main__":
             if args['option1'] == 'corners':
                 for i in range(4):
                     if 0 < xypix[i][0] < height and 0 < xypix[i][1] < width:
-                        cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
-                                   5, (0, 128, 255), -1)
+                        # cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
+                        #            5, (255, 128, 0), -1)
+                        x1 = int(xypix[i][0]-size_square)
+                        y1 = int(xypix[i][1]-size_square)
+                        x2 = int(xypix[i][0]+size_square)
+                        y2 = int(xypix[i][1]+size_square)
+                        cv2.rectangle(s[k].raw, (x1, y1),
+                                      (x2, y2), (255, 128, 0), -1)
             else:
                 if 0 < xypix[0][0] < height and 0 < xypix[0][1] < width:
                     x1 = int(xypix[0][0]-size_square)
@@ -500,7 +507,7 @@ if __name__ == "__main__":
                     x2 = int(xypix[0][0]+size_square)
                     y2 = int(xypix[0][1]+size_square)
                     cv2.rectangle(s[k].raw, (x1, y1),
-                                  (x2, y2), (0, 128, 255), -1)
+                                  (x2, y2), (255, 128, 0), -1)
 
             cv2.namedWindow('camera'+str(k), flags=cv2.WINDOW_NORMAL)
             cv2.resizeWindow('camera'+str(k), width=480, height=270)
@@ -516,6 +523,9 @@ if __name__ == "__main__":
         ax3D.set_ylabel('Y (m)')
         ax3D.set_zlabel('Z (m)')
         ax3D.set_aspect('equal')
+        ax3D.set_xticklabels([])
+        ax3D.set_yticklabels([])
+        ax3D.set_zticklabels([])
         X.plot3D(ax3D, 'k.', Pc)
 
         fig3.show()
@@ -746,22 +756,22 @@ if __name__ == "__main__":
                     for i in range(4):
                         if 0 < xypix[i][0] < height and 0 < xypix[i][1] < width:
                             cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
-                                       5, (0, 255, 255), -1)
+                                       7, (0, 255, 255), -1)
                 else:
                     if 0 < xypix[0][0] < height and 0 < xypix[0][1] < width:
                         cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
-                                   5, (0, 255, 255), -1)
+                                   7, (0, 255, 255), -1)
                 cv2.imshow('camera'+str(k), s[k].raw)
 
             X.setPlot3D(Pc)
 
-            Error = computeError(RealPts, X.InitPts)
+            # Error = computeError(RealPts, X.InitPts)
 
-            print '\nAverage Error of initial estimation = ' + str(Error)
+            # print '\nAverage Error of initial estimation = ' + str(Error)
 
-            Error = computeError(RealPts, X.OptPts)
+            # Error = computeError(RealPts, X.OptPts)
 
-            print '\nAverage Error after optimization = ' + str(Error) + '\n'
+            # print '\nAverage Error after optimization = ' + str(Error) + '\n'
 
             while key != ord('q'):
                 key = cv2.waitKey(20)
