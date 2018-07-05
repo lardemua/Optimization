@@ -185,14 +185,13 @@ def computeError(realPts, compPts):
         compPt = [compPt for compPt in compPts if compPt.id ==
                   realPt.id][0]
 
-        Error = Error + (abs(compPt.x - realPt.x) +
-                         abs(compPt.y - realPt.y) +
-                         abs(compPt.z - realPt.z))/3
+        # Error = Error + (abs(compPt.x - realPt.x) +
+        #                  abs(compPt.y - realPt.y) +
+        #                  abs(compPt.z - realPt.z))/3
 
-        # print compPt.y
-        # print realPt.y
-        # print compPt.y - realPt.y
-        # print '\n'
+        Error = Error + ((compPt.x - realPt.x) ** 2 +
+                         (compPt.y - realPt.y) ** 2 +
+                         (compPt.z - realPt.z) ** 2) ** (1/2.0)
 
     AverageError = Error/(len(realPts))
 
