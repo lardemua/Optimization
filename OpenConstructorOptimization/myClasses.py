@@ -129,7 +129,7 @@ class MyX:
     def plot3D(self, ax3D, symbol, Pc):
 
         # Referential of arucos
-        s = 0.150
+        s = 0.08
         P = np.array([[0, 0, 0], [s, 0, 0], [0, s, 0], [0, 0, s]])
 
         for aruco in self.arucos:
@@ -158,7 +158,7 @@ class MyX:
 
             # Draw text
             handle_text = ax3D.text(Ptransf[0][0], Ptransf[0][1],
-                                    Ptransf[0][2], "A" + aruco.id, color='darkorchid')
+                                    Ptransf[0][2], "A" + aruco.id, color='darkorchid')  # , size=20, zorder=1)
             handle_textx = ax3D.text(Ptransf[1][0], Ptransf[1][1],
                                      Ptransf[1][2], "x", color='red')
             handle_texty = ax3D.text(Ptransf[2][0], Ptransf[2][1],
@@ -208,7 +208,7 @@ class MyX:
 
             # Draw text
             handle_text = ax3D.text(Ptransf[0][0], Ptransf[0][1],
-                                    Ptransf[0][2], "C" + camera.id, color='darkorchid')
+                                    Ptransf[0][2], "C" + camera.id, color='darkorchid')  # , size=15, zorder=1)
             handle_textx = ax3D.text(Ptransf[1][0], Ptransf[1][1],
                                      Ptransf[1][2], "x", color='red')
             handle_texty = ax3D.text(Ptransf[2][0], Ptransf[2][1],
@@ -223,7 +223,7 @@ class MyX:
     def setPlot3D(self, Pc):
 
         # Referential of arucos
-        s = 0.150
+        s = 0.080
         P = np.array([[0, 0, 0], [s, 0, 0], [0, s, 0], [0, 0, s]])
         self.OptPts = []
 
@@ -264,19 +264,19 @@ class MyX:
 
             # redraw text
             handle.handle_text.set_position((Ptransf[0][0], Ptransf[0][1]))
-            handle.handle_text.set_3d_properties(z=Ptransf[0][2], zdir='x')
+            handle.handle_text.set_3d_properties(z=Ptransf[0][2], zdir='y')
 
             # redraw text x
             handle.handle_textx.set_position((Ptransf[1][0], Ptransf[1][1]))
-            handle.handle_textx.set_3d_properties(z=Ptransf[1][2], zdir='x')
+            handle.handle_textx.set_3d_properties(z=Ptransf[1][2], zdir='y')
 
             # redraw text y
             handle.handle_texty.set_position((Ptransf[2][0], Ptransf[2][1]))
-            handle.handle_texty.set_3d_properties(z=Ptransf[2][2], zdir='x')
+            handle.handle_texty.set_3d_properties(z=Ptransf[2][2], zdir='y')
 
             # redraw text z
             handle.handle_textz.set_position((Ptransf[3][0], Ptransf[3][1]))
-            handle.handle_textz.set_3d_properties(z=Ptransf[3][2], zdir='x')
+            handle.handle_textz.set_3d_properties(z=Ptransf[3][2], zdir='y')
 
             # Draw aruco point 3D
             wp = wp.transpose()
@@ -327,19 +327,19 @@ class MyX:
 
             # redraw text
             handle.handle_text.set_position((Ptransf[0][0], Ptransf[0][1]))
-            handle.handle_text.set_3d_properties(z=Ptransf[0][2], zdir='x')
+            handle.handle_text.set_3d_properties(z=Ptransf[0][2], zdir='y')
 
             # redraw text x
             handle.handle_textx.set_position((Ptransf[1][0], Ptransf[1][1]))
-            handle.handle_textx.set_3d_properties(z=Ptransf[1][2], zdir='x')
+            handle.handle_textx.set_3d_properties(z=Ptransf[1][2], zdir='y')
 
             # redraw text y
             handle.handle_texty.set_position((Ptransf[2][0], Ptransf[2][1]))
-            handle.handle_texty.set_3d_properties(z=Ptransf[2][2], zdir='x')
+            handle.handle_texty.set_3d_properties(z=Ptransf[2][2], zdir='y')
 
             # redraw text z
             handle.handle_textz.set_position((Ptransf[3][0], Ptransf[3][1]))
-            handle.handle_textz.set_3d_properties(z=Ptransf[3][2], zdir='x')
+            handle.handle_textz.set_3d_properties(z=Ptransf[3][2], zdir='y')
 
     def toVector(self, args):
         for i in range(len(self.cameras)):

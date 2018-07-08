@@ -134,8 +134,7 @@ if __name__ == "__main__":
                 os.makedirs(newDirectory)
 
             bash('cp ' + Directory + '/* ' + newDirectory + '/')
-            # dir_object = copy_dir(Directory)
-            # paste_dir(dir_object, Directory[:30])
+
             print "----------------------------\nNew path was created\n----------------------------"
             # -------
 
@@ -194,12 +193,6 @@ if __name__ == "__main__":
     # Detect Aruco Markers
     detections = []
 
-    # print(filenames)
-    # filenames = [x for x in filenames if x ==                 '../CameraImages/Aruco_Board_2/dataset/00000000.jpg']
-
-    # exit(0)
-
-    # K = len(filenames)  # number of cameras
     k = 0
     # for filename in filenames[0:50:30]:
     for filename in filenames:
@@ -237,13 +230,13 @@ if __name__ == "__main__":
                         aruco.drawAxis(raw, mtx, dist, rvec,
                                        tvec, 0.05)  # Draw Axis
                         cv2.putText(raw, "Id:" + str(idd[0]), (corner[0][0, 0],
-                                                               corner[0][0, 1]), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
+                                                               corner[0][0, 1]), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
                 raw = aruco.drawDetectedMarkers(raw, corners)
 
         if args['d'] or args['do']:
             # drawing sttuff
-            size_square = 12
+            size_square = 15
             for corner in corners:
                 if args['option1'] == 'corners':
                     for ij in range(len(corner[0])):
@@ -342,7 +335,7 @@ if __name__ == "__main__":
     if not nx.is_connected(GA):
         exit()
 
-    map_node = 'C0'  # to be defined by hand
+    map_node = 'A0'  # to be defined by hand
 
     while not map_node in GA.nodes:
         # raise ValueError('Must define a map that exists in the graph. Should be one of ' + str(GA.nodes))
@@ -358,8 +351,8 @@ if __name__ == "__main__":
     # cycle all nodes in graph
     for node in tqdm(GA.nodes):
 
-        # print "--------------------------------------------------------"
-        # print('Solving for ' + node + "...")
+        print "--------------------------------------------------------"
+        print('Solving for ' + node + "...")
 
         # path = nx.shortest_path(GA, node, map_node)
         # print(path)
@@ -445,19 +438,30 @@ if __name__ == "__main__":
         # print T
         # exit()
 
-        # print("Transformation from " + node +
-        #       " to " + map_node + " is: \n" + str(T))
+        print("Transformation from " + node +
+              " to " + map_node + " is: \n" + str(T))
 
         if node[0] == 'C' and args['option3'] == 'fromaruco':  # node is a camera
             camera = MyCamera(T=T, id=node[1:])
             X.cameras.append(camera)
         elif node == 'Map':
-            pilas = 0
-            # camera = MyCamera(T=T, id='Map')
-            # X.cameras.append(camera)
+            camera = MyCamera(T=T, id='Map')
+            X.cameras.append(camera)
         else:
             aruco = MyAruco(T=T, id=node[1:])
             X.arucos.append(aruco)
+
+    # Get vector x0
+    X.toVector(args)
+    x0 = np.array(X.v, dtype=np.float)
+    # print len(x0)
+    # exit()
+
+    import random
+    x_random = x0 * np.array([random.uniform(0.99, 1.01)
+                              for _ in xrange(len(x0))], dtype=np.float)
+    # x0 = x_random
+    # X.fromVector(x0, args)
 
     #---------------------------------------
     #--- Draw Initial guess.
@@ -472,7 +476,7 @@ if __name__ == "__main__":
     handles = []
 
     if args['d'] or args['do']:
-        size_square = 8
+        size_square = 13
         for detection in detections:
             camera = [camera for camera in X.cameras if camera.id ==
                       detection.camera[1:]][0]  # fetch the camera for this detection
@@ -519,9 +523,9 @@ if __name__ == "__main__":
         ax3D = fig3.add_subplot(111, projection='3d')
         plt.hold(True)
         # plt.title("3D projection of aruco markers")
-        ax3D.set_xlabel('X (m)')
-        ax3D.set_ylabel('Y (m)')
-        ax3D.set_zlabel('Z (m)')
+        ax3D.set_xlabel('X')
+        ax3D.set_ylabel('Y')
+        ax3D.set_zlabel('Z')
         ax3D.set_aspect('equal')
         ax3D.set_xticklabels([])
         ax3D.set_yticklabels([])
@@ -535,17 +539,6 @@ if __name__ == "__main__":
         while key != ord('o'):
             key = cv2.waitKey(20)
             plt.waitforbuttonpress(0.01)
-
-    # Get vector x0
-    X.toVector(args)
-    x0 = np.array(X.v, dtype=np.float)
-    # print len(x0)
-    # exit()
-
-    import random
-    x_random = x0 * np.array([random.uniform(0.85, 1.15)
-                              for _ in xrange(len(x0))], dtype=np.float)
-    # x0 = x_random
 
     #---------------------------------------
     #--- Compute ground truth of initial estimate
@@ -585,9 +578,20 @@ if __name__ == "__main__":
         plt.legend(loc='best')
         axcost.set_xlabel('Detections')
         axcost.set_ylabel('Cost')
-        plt.ylim(ymin=-1)
+        plt.ylim(ymin=-0.05)
         plt.waitforbuttonpress(0.1)
-        # plt.xticks([])
+
+        # # Put detections on x-axis
+        # squad = []
+        # number_of_detections = len(detections)
+        # x1 = range(number_of_detections)
+        # for detection in detections:
+        #     xstring = detection.camera + '/' + detection.aruco
+        #     squad.append(xstring)
+        # # print x1
+        # # print squad
+        # axcost.set_xticks(x1)
+        # axcost.set_xticklabels(squad, minor=False, rotation=45)
 
     print("\n-> Initial cost = " + str(initial_residuals)) + "\n"
 
@@ -624,12 +628,6 @@ if __name__ == "__main__":
 
         print('A shape = ' + str(A.shape))
         print('A =\n' + str(A.toarray()))
-
-        # if args['d'] or args['do']:
-        #     # Draw graph
-        #     fig5 = plt.figure()
-        #     plt.imshow(A.toarray(), cmap='Greys',  interpolation='nearest')
-        #     plt.waitforbuttonpress()
 
         #---------------------------------------
         #--- Set the bounds for the parameters
@@ -682,9 +680,6 @@ if __name__ == "__main__":
         print("\nOptimization took {0:.0f} seconds".format(t1 - t0))
 
         X.fromVector(list(res.x), args)
-
-        # if args['d'] or args['do']:
-        #     X.plot3D(ax3D, 'g*', Pc)
 
         #---------------------------------------
         #--- Present the results
@@ -756,22 +751,22 @@ if __name__ == "__main__":
                     for i in range(4):
                         if 0 < xypix[i][0] < height and 0 < xypix[i][1] < width:
                             cv2.circle(s[k].raw, (int(xypix[i][0]), int(xypix[i][1])),
-                                       7, (0, 255, 255), -1)
+                                       10, (0, 255, 255), -1)
                 else:
                     if 0 < xypix[0][0] < height and 0 < xypix[0][1] < width:
                         cv2.circle(s[k].raw, (int(xypix[0][0]), int(xypix[0][1])),
-                                   7, (0, 255, 255), -1)
+                                   10, (0, 255, 255), -1)
                 cv2.imshow('camera'+str(k), s[k].raw)
 
             X.setPlot3D(Pc)
 
-            # Error = computeError(RealPts, X.InitPts)
+            Error = computeError(RealPts, X.InitPts)
 
-            # print '\nAverage Error of initial estimation = ' + str(Error)
+            print '\nAverage Error of initial estimation = ' + str(Error)
 
-            # Error = computeError(RealPts, X.OptPts)
+            Error = computeError(RealPts, X.OptPts)
 
-            # print '\nAverage Error after optimization = ' + str(Error) + '\n'
+            print '\nAverage Error after optimization = ' + str(Error) + '\n'
 
             while key != ord('q'):
                 key = cv2.waitKey(20)
