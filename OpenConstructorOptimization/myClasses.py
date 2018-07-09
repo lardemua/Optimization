@@ -348,6 +348,7 @@ class MyX:
                  self.cameras[i].r1, self.cameras[i].r2, self.cameras[i].r3])
 
         for i in range(len(self.arucos)):
+            # print('Aruco ' + str(self.arucos[i].id))
             if args['option2'] == 'all':
                 self.v.extend(
                     [self.arucos[i].x, self.arucos[i].y, self.arucos[i].z,

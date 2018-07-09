@@ -181,6 +181,13 @@ def computeError(realPts, compPts):
 
     Error = 0
 
+    compA0 = [compA0 for compA0 in compPts if compA0.id ==
+              '0'][0]
+
+    x0 = compA0.x
+    y0 = compA0.y
+    z0 = compA0.z
+
     for realPt in realPts:
         compPt = [compPt for compPt in compPts if compPt.id ==
                   realPt.id][0]
@@ -189,9 +196,12 @@ def computeError(realPts, compPts):
         #                  abs(compPt.y - realPt.y) +
         #                  abs(compPt.z - realPt.z))/3
 
-        Error = Error + ((compPt.x - realPt.x) ** 2 +
-                         (compPt.y - realPt.y) ** 2 +
-                         (compPt.z - realPt.z) ** 2) ** (1/2.0)
+        Error = Error + ((compPt.x - x0 - realPt.x) ** 2 +
+                         (compPt.y - y0 - realPt.y) ** 2 +
+                         (compPt.z - z0 - realPt.z) ** 2) ** (1/2.0)
+
+        # Error = Error + ((compPt.x - realPt.x) ** 2 +
+        #                  (compPt.y - realPt.y) ** 2) ** (1/2.0)
 
     AverageError = Error/(len(realPts))
 

@@ -194,7 +194,7 @@ if __name__ == "__main__":
     detections = []
 
     k = 0
-    # for filename in filenames[0:50:30]:
+    # for filename in filenames[12:14]:
     for filename in filenames:
 
         # load image
@@ -218,6 +218,9 @@ if __name__ == "__main__":
                     corners, marksize, mtx, dist)
 
                 for rvec, tvec, idd, corner in zip(rvecs, tvecs, ids, corners):
+
+                    # if float(idd) > 1:  # skip all arucos id > 3
+                    #     continue
 
                     detection = MyDetection(
                         rvec[0], tvec[0], 'C' + str(k), 'A' + str(idd[0]), corner)
@@ -351,8 +354,8 @@ if __name__ == "__main__":
     # cycle all nodes in graph
     for node in tqdm(GA.nodes):
 
-        print "--------------------------------------------------------"
-        print('Solving for ' + node + "...")
+        # print "--------------------------------------------------------"
+        # print('Solving for ' + node + "...")
 
         # path = nx.shortest_path(GA, node, map_node)
         # print(path)
@@ -438,30 +441,37 @@ if __name__ == "__main__":
         # print T
         # exit()
 
-        print("Transformation from " + node +
-              " to " + map_node + " is: \n" + str(T))
+        # print("Transformation from " + node +
+        #       " to " + map_node + " is: \n" + str(T))
 
         if node[0] == 'C' and args['option3'] == 'fromaruco':  # node is a camera
             camera = MyCamera(T=T, id=node[1:])
             X.cameras.append(camera)
         elif node == 'Map':
-            camera = MyCamera(T=T, id='Map')
-            X.cameras.append(camera)
+            vvv = 0
+            # camera = MyCamera(T=T, id='Map')
+            # X.cameras.append(camera)
         else:
             aruco = MyAruco(T=T, id=node[1:])
             X.arucos.append(aruco)
 
+    X.arucos.sort(key=lambda x: float(x.id), reverse=False)
+
     # Get vector x0
     X.toVector(args)
     x0 = np.array(X.v, dtype=np.float)
+    # print len(X.cameras)
     # print len(x0)
-    # exit()
+    # print x0
+    # # exit()
 
     import random
     x_random = x0 * np.array([random.uniform(0.99, 1.01)
                               for _ in xrange(len(x0))], dtype=np.float)
     # x0 = x_random
     # X.fromVector(x0, args)
+
+    # print x0
 
     #---------------------------------------
     #--- Draw Initial guess.
@@ -530,6 +540,19 @@ if __name__ == "__main__":
         ax3D.set_xticklabels([])
         ax3D.set_yticklabels([])
         ax3D.set_zticklabels([])
+
+        # s = 0.150
+        # P = np.array([[0, 0, 0], [s, 0, 0], [0, s, 0], [0, 0, s]])
+
+        # Ptransf = P
+
+        # ax3D.plot([Ptransf[0][0], Ptransf[1][0]], [Ptransf[0][1],
+        #                                            Ptransf[1][1]], [Ptransf[0][2], Ptransf[1][2]], 'r-')
+        # ax3D.plot([Ptransf[0][0], Ptransf[2][0]], [Ptransf[0][1],
+        #                                            Ptransf[2][1]], [Ptransf[0][2], Ptransf[2][2]], 'g-')
+        # ax3D.plot([Ptransf[0][0], Ptransf[3][0]], [Ptransf[0][1],
+        #                                            Ptransf[3][1]], [Ptransf[0][2], Ptransf[3][2]], 'b-')
+
         X.plot3D(ax3D, 'k.', Pc)
 
         fig3.show()
@@ -555,6 +578,18 @@ if __name__ == "__main__":
             Pt = Point3DtoComputeError(xi, yi, 0, str(Aid))
             RealPts.append(Pt)
             Aid = Aid + 1
+
+    # yi = 0
+    # for x in range(2):
+    #     xi = x * factor
+    #     Pt = Point3DtoComputeError(xi, yi, 0, str(Aid))
+    #     RealPts.append(Pt)
+    #     Aid = Aid + 1
+
+    # for RealPt in RealPts:
+    #     print "A" + RealPt.id + ": \n" + \
+    #         str(RealPt.x) + ", " + str(RealPt.y) + ", " + str(RealPt.z)
+    # exit()
 
     #---------------------------------------
     #--- Test call of objective function
@@ -593,7 +628,7 @@ if __name__ == "__main__":
         # axcost.set_xticks(x1)
         # axcost.set_xticklabels(squad, minor=False, rotation=45)
 
-    print("\n-> Initial cost = " + str(initial_residuals)) + "\n"
+    # print("\n-> Initial cost = " + str(initial_residuals)) + "\n"
 
     if not args['no']:
 
@@ -638,23 +673,34 @@ if __name__ == "__main__":
         # camera_params = params[:n_cameras * 9].reshape((n_cameras, 9))
         # points_3d = params[n_cameras * 9:].reshape((n_points, 3))
 
-        # Bmin = []
-        # Bmax = []
-        # for i in range(0, len(views)):
-        #     for i in range(0, 6):
-        #         Bmin.append(-np.inf)
-        #         Bmax.append(np.inf)
+        Bmin = []
+        Bmax = []
+        for i in range(0, len(X.cameras)):
+            for i in range(0, 6):
+                Bmin.append(-np.inf)
+                Bmax.append(np.inf)
 
-        # delta = 0.1
-        # for i in range(len(views) * 6, len(x0)):
-        #     Bmin.append(x0[i] - delta)
-        #     Bmax.append(x0[i] + delta)
+        delta = 0.0000001
+        for i in range(len(X.cameras) * 6, len(X.cameras) * 6 + len(X.arucos)*6):
+            if i > len(X.cameras) * 6 and i <= len(X.cameras) * 6 + 6:
+                Bmin.append(x0[i] - delta)
+                Bmax.append(x0[i] + delta)
+            else:
+                Bmin.append(-np.inf)
+                Bmax.append(np.inf)
 
-        # # for i in range(len(x0)-4, len(x0)):
-        #     # Bmin.append(-np.inf)
-        #     # Bmax.append(np.inf)
+        # for i in range(len(x0)-4, len(x0)):
+            # Bmin.append(-np.inf)
+            # Bmax.append(np.inf)
 
-        # bounds = (Bmin, Bmax)
+        bounds = (Bmin, Bmax)
+        # print len(Bmin)
+        # print len(Bmax)
+
+        # print len(x0)
+        # print len(bounds)
+
+        # exit()
 
         #---------------------------------------
         #--- Optimization (minimization)
@@ -672,7 +718,7 @@ if __name__ == "__main__":
 
         # Method
         res = least_squares(costFunction, x0, verbose=2, jac_sparsity=A, x_scale='jac', ftol=1e-4,
-                            xtol=1e-4, method='trf', args=(dist, intrinsics, X, Pc, detections, args, handles, handle_fun, s))
+                            xtol=1e-4, bounds=bounds, method='trf', args=(dist, intrinsics, X, Pc, detections, args, handles, handle_fun, s))
 
         # print(res.x)
         t1 = time.time()
