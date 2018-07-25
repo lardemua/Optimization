@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     newDirectory = os.path.dirname(Directory) + "/dataset_optimized"
 
-    if args['option3'] == 'fromfile' or marksize == 0.1:
+    if args['option3'] == 'fromfile' or marksize == 0.1:  # or True:
 
         if args['saveResults']:
             # Create new directory
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     detections = []
 
     k = 0
-    # for filename in filenames[12:14]:
+    # for filename in filenames[12:16]:
     for filename in filenames:
 
         # load image
@@ -219,7 +219,10 @@ if __name__ == "__main__":
 
                 for rvec, tvec, idd, corner in zip(rvecs, tvecs, ids, corners):
 
-                    # if float(idd) > 1:  # skip all arucos id > 3
+                    # if float(idd) > 3:  # skip all arucos id > 3
+                    #     continue
+                    # valid_ids = range(0, 54, 7)
+                    # if float(idd) not in valid_ids:  # skip all arucos id > 3
                     #     continue
 
                     detection = MyDetection(
@@ -316,7 +319,7 @@ if __name__ == "__main__":
 
     pos = nx.random_layout(GA)
     pos = nx.spring_layout(GA)
-    pos = nx.kamada_kawai_layout(GA)
+    # pos = nx.kamada_kawai_layout(GA)
 
     colors = range(4)
     edges, weights = zip(*nx.get_edge_attributes(GA, 'weight').items())
@@ -606,27 +609,43 @@ if __name__ == "__main__":
         # Draw graph
         fig4 = plt.figure()
         axcost = fig4.add_subplot(111)
-        plt.plot(initial_residuals, 'b', label="Initial residuals")
+        plt.plot(initial_residuals, 'b',
+                 label="Initial residuals")
 
         handle_fun, = plt.plot(initial_residuals, 'r--',
                                label="Final residuals")
-        plt.legend(loc='best')
-        axcost.set_xlabel('Detections')
-        axcost.set_ylabel('Cost')
+
+        plt.legend(loc='best', prop={'size': 22})
+        axcost.set_xlabel('Detections', size=22)
+        axcost.set_ylabel('Cost (pixel)', size=22)
         plt.ylim(ymin=-0.05)
         plt.waitforbuttonpress(0.1)
 
-        # # Put detections on x-axis
-        # squad = []
-        # number_of_detections = len(detections)
-        # x1 = range(number_of_detections)
-        # for detection in detections:
-        #     xstring = detection.camera + '/' + detection.aruco
-        #     squad.append(xstring)
+        # x1 = range(0, 1801, 200)
+        # squad = list(['0', '200', '400', '600', '800',
+        #               '1000', '1200', '1400', '1600', '1800'])
+
+        # y1 = range(0, 61, 10)
+        # squady = list(['0', '10', '20', '30', '40',
+        #                '50', '60'])
+
+        y1 = range(0, 13, 2)
+        squady = list(['0', '2', '4', '6', '8',
+                       '10', '12'])
+
+        # Put detections on x-axis
+        squad = []
+        number_of_detections = len(detections)
+        x1 = range(number_of_detections)
+        for detection in detections:
+            xstring = detection.camera + '/' + detection.aruco
+            squad.append(xstring)
         # # print x1
         # # print squad
-        # axcost.set_xticks(x1)
-        # axcost.set_xticklabels(squad, minor=False, rotation=45)
+        axcost.set_xticks(x1)
+        axcost.set_xticklabels(squad, minor=False, rotation=25, size=17)
+        axcost.set_yticks(y1)
+        axcost.set_yticklabels(squady, minor=False, rotation=0, size=17)
 
     # print("\n-> Initial cost = " + str(initial_residuals)) + "\n"
 
@@ -806,13 +825,14 @@ if __name__ == "__main__":
 
             X.setPlot3D(Pc)
 
-            Error = computeError(RealPts, X.InitPts)
+            # Average Error of 3D projection
+            # Error = computeError(RealPts, X.InitPts)
 
-            print '\nAverage Error of initial estimation = ' + str(Error)
+            # print '\nAverage Error of initial estimation = ' + str(Error)
 
-            Error = computeError(RealPts, X.OptPts)
+            # Error = computeError(RealPts, X.OptPts)
 
-            print '\nAverage Error after optimization = ' + str(Error) + '\n'
+            # print '\nAverage Error after optimization = ' + str(Error) + '\n'
 
             while key != ord('q'):
                 key = cv2.waitKey(20)
