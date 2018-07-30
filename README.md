@@ -26,8 +26,7 @@ sudo pip install -r requirements.txt
 
 # Usage
 
-## Lemonbot datasets
-To use the datasets taken from the lemonbot camera, go to the OpenConstructorOptimization folder 
+To run an optimization, go to the OpenConstructorOptimization folder 
 
 ```bash
 cd OpenConstructorOptimization
@@ -66,10 +65,24 @@ optional arguments:
                         from the optimization process
   -ms marksize          size of the aruco markers (m)
 
+
+```
+
+## Lemonbot datasets
+
+Lemonbot datasets were taken with a point grey camera. Images are in jpg format and the marker size is 0.082. So, you must run for example like this:
+
+```bash
+./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.082 -f jpg
 ```
 
 ## OpenConstructor datasets
 
+...
+
+```bash
+./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.1 -f png
+```
 
 
 # Credits
