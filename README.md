@@ -7,15 +7,16 @@ Check the github page [github.com/lardemua](https://github.com/lardemua) or the 
 
 # Table of Contents
 
-- [Guidelines for LARDEMUA](#guidelines-for-lardemua)
+- [ATLASCAR2 Sensors Calibration by Global Optimization](#atlascar2-sensors-calibration-by-global-optimization)
 - [Table of Contents](#table-of-contents)
 - [Installation](#installation)
 - [Usage](#usage)
+  * [Lemonbot datasets](#lemonbot-datasets)
+  * [OpenConstructor datasets](#openconstructor-datasets)
 - [Credits](#credits)
 - [License](#license)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
 # Installation
 
 If this is a python standalone project, so just use the pip install and the [requirements.txt file](https://pip.readthedocs.io/en/1.1/requirements.html) mechanism:
@@ -26,18 +27,64 @@ sudo pip install -r requirements.txt
 
 # Usage
 
-For the sake of example, lets call this __fantastic__ [python script](script/do-nothing.py)
+To run an optimization, go to the OpenConstructorOptimization folder 
 
 ```bash
-script/do-nothing.py -n miguel
+cd OpenConstructorOptimization
+```
+
+and run
+
+```bash
+./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.082
 ```
 
 All the arguments are:
 
 ```bash
-usage: do-nothing.py [-h] -n NAME [-v VALUE]
-do-nothing.py: error: argument -n/--name is required
+usage: Optimization.py [-h] [-d] [-no] [-do] [-saveResults] [-processDataset]
+                       [-ms marksize]
+                       Directory {center,corners} {all,translation}
+                       {fromaruco,fromfile}
+
+positional arguments:
+  Directory             Directory of the dataset to optimize
+  {center,corners}      Chose if is the centers or the corners of Arucos to do
+                        the otimization.
+  {all,translation}     Chose if use translation and rotation or only the
+                        translations in the vector x to otimize.
+  {fromaruco,fromfile}  Get initial estimation from the markers detection or
+                        from a file.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d                    draw initial estimation
+  -no                   do not optimize
+  -do                   to draw during optimization
+  -saveResults          Save results of the optimization
+  -processDataset       Process the point clouds with the results obtained
+                        from the optimization process
+  -ms marksize          size of the aruco markers (m)
+
+
 ```
+
+## Lemonbot datasets
+
+Lemonbot datasets were taken with a point grey camera. Images are in jpg format and the marker size is 0.082. So, you must run for example like this:
+
+```bash
+./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.082 -f jpg
+```
+
+## OpenConstructor datasets
+
+...
+
+```bash
+./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.1 -f png
+```
+
 
 # Credits
 
