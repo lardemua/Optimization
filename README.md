@@ -26,18 +26,51 @@ sudo pip install -r requirements.txt
 
 # Usage
 
-For the sake of example, lets call this __fantastic__ [python script](script/do-nothing.py)
+## Lemonbot datasets
+To use the datasets taken from the lemonbot camera, go to the OpenConstructorOptimization folder 
 
 ```bash
-script/do-nothing.py -n miguel
+cd OpenConstructorOptimization
+```
+
+and run
+
+```bash
+./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.082
 ```
 
 All the arguments are:
 
 ```bash
-usage: do-nothing.py [-h] -n NAME [-v VALUE]
-do-nothing.py: error: argument -n/--name is required
+usage: Optimization.py [-h] [-d] [-no] [-do] [-saveResults] [-processDataset]
+                       [-ms marksize]
+                       Directory {center,corners} {all,translation}
+                       {fromaruco,fromfile}
+
+positional arguments:
+  Directory             Directory of the dataset to optimize
+  {center,corners}      Chose if is the centers or the corners of Arucos to do
+                        the otimization.
+  {all,translation}     Chose if use translation and rotation or only the
+                        translations in the vector x to otimize.
+  {fromaruco,fromfile}  Get initial estimation from the markers detection or
+                        from a file.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d                    draw initial estimation
+  -no                   do not optimize
+  -do                   to draw during optimization
+  -saveResults          Save results of the optimization
+  -processDataset       Process the point clouds with the results obtained
+                        from the optimization process
+  -ms marksize          size of the aruco markers (m)
+
 ```
+
+## OpenConstructor datasets
+
+
 
 # Credits
 
