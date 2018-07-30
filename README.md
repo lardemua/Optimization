@@ -36,14 +36,14 @@ cd OpenConstructorOptimization
 and run
 
 ```bash
-./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.082
+./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.082 -f png
 ```
 
 All the arguments are:
 
 ```bash
 usage: Optimization.py [-h] [-d] [-no] [-do] [-saveResults] [-processDataset]
-                       [-ms marksize]
+                       [-ms marksize] -f imageFormat
                        Directory {center,corners} {all,translation}
                        {fromaruco,fromfile}
 
@@ -65,6 +65,8 @@ optional arguments:
   -processDataset       Process the point clouds with the results obtained
                         from the optimization process
   -ms marksize          size of the aruco markers (m)
+  -f imageFormat        image format
+
 
 
 ```
@@ -74,7 +76,7 @@ optional arguments:
 Lemonbot datasets were taken with a point grey camera. Images are in jpg format and the marker size is 0.082. So, you must run for example like this:
 
 ```bash
-./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.082 -f jpg
+./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.082 -f png
 ```
 
 ## OpenConstructor datasets
@@ -82,7 +84,7 @@ Lemonbot datasets were taken with a point grey camera. Images are in jpg format 
 ...
 
 ```bash
-./Optimization.py ../CameraImages/DataSet1 center all fromaruco -do -ms 0.1 -f png
+./Optimization.py ../CameraImages/Aruco_Board_1/dataset/ center all fromaruco -do -ms 0.1 -f jpg
 ```
 
 
